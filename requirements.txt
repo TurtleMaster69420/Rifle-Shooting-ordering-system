@@ -1,0 +1,7 @@
+flask-wtf
+flask
+wtforms
+flask-bootstrap4
+flask-bcrypt
+flask-sqlalchemy
+datetime
