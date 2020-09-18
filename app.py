@@ -1,16 +1,19 @@
-from flask import Flask, session, redirect, render_template
+from flask import Flask, session, redirect, render_template, request
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 import datetime
+from flask_bootstrap import Bootstrap
+from login_form import loginForm
 
 app = Flask(__name__)
+
 app.config["SECRET_KEY"] = "YNeGB;aX+5Pu6(}>?T?xs0sn3a{PZ0r7z|-K"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///site.db"
 
 bcrypt = Bcrypt(app)
 db = SQLAlchemy(app)
-
+bootstrap = Bootstrap(app)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -73,7 +76,7 @@ def create_user(name, email, password):
     if User.query.filter_by(email=email).first():
         return False, "That email is already in use"
     pwHash = bcrypt.generate_password_hash(password, 10)
-    db.session.add(User(name=name, email=email, pwHash=pwHash, type="user"))
+    db.session.add(User(name=name, email=email, pwHash=pwHash, type="orderer"))
     db.session.commit()
     return True, "Your account was created!"
 
@@ -103,17 +106,21 @@ def index():  # NOTE: session is cleared when the BROWSER is closed, not the las
         return redirect(new_page)
 
 
-@app.route('/login')
+@app.route('/login', methods=["GET", "POST"])
 def login():
     allowed, new_page = authenticate()
     if not allowed:
         return redirect(new_page)
+    form = loginForm()
+    if not form.validate_on_submit():
+        return render_template('login.html', form=form)
+    if request.method == 'POST':
+        login_info = request.form
+        if verify_login(login_info['email'], login_info['password']):
+            return 'Successfully logged in, happy days'
+        else:
+            return render_template('login.html', form=form, invalid=True)
     return render_template("login.html")
-
-
-@app.route('/api/login', methods=["POST"])
-def api_login():  # TODO: replace login stub with functional code
-    return '{"success": "true"}'
 
 
 @app.route('/register')
@@ -122,11 +129,6 @@ def register():
     if not allowed:
         return redirect(new_page)
     return render_template("register.html")
-
-
-@app.route('/api/register')
-def api_register():  # TODO: replace register stub with functional code
-    return '{"success": "true"}'
 
 
 @app.route('/forgot_password')
