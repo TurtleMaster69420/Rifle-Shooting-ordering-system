@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 import datetime
 from flask_bootstrap import Bootstrap
 from login_form import loginForm
+from register_form import registerForm
 
 app = Flask(__name__)
 
@@ -96,6 +97,10 @@ def verify_login(email, password):
     else:
         return False
 
+def find_user(email):
+    #returns True if emails in email is already in database
+    return False
+
 
 @app.route('/')
 def index():  # NOTE: session is cleared when the BROWSER is closed, not the last window of the page
@@ -113,22 +118,28 @@ def login():
         return redirect(new_page)
     form = loginForm()
     if not form.validate_on_submit():
-        return render_template('login.html', form=form)
-    if request.method == 'POST':
-        login_info = request.form
-        if verify_login(login_info['email'], login_info['password']):
-            return 'Successfully logged in, happy days'
-        else:
-            return render_template('login.html', form=form, invalid=True)
-    return render_template("login.html")
+        return render_template('login.html', form=form, location="Login")
+    login_info = request.form
+    if verify_login(login_info['email'], login_info['password']):
+        return 'Successfully logged in, happy days'
+    else:
+        return render_template('login.html', form=form, invalid=True, location="Login")
 
 
-@app.route('/register')
+@app.route('/register', methods=["GET", "POST"])
 def register():
     allowed, new_page = authenticate()
     if not allowed:
         return redirect(new_page)
-    return render_template("register.html")
+    form = registerForm()
+    if not form.validate_on_submit():
+        return render_template('register.html', form=form, location="Register")
+    register_info = request.form
+    if not find_user(register_info['email']):
+        #function to add guy to database
+        return 'Successfully registered, happy days'
+    else:
+        return render_template('register.html', form=form, invalid=True, location="Register")
 
 
 @app.route('/forgot_password')
@@ -139,9 +150,6 @@ def forgot_password():
     return render_template("forot_password")
 
 
-@app.route('/api/forgot_password')
-def api_forgot_password():  # TODO: replace 'forgot password' stub with functional code
-    return '{"success": "true"}'
 
 
 if __name__ == '__main__':
