@@ -1,0 +1,45 @@
+{% extends "bootstrap/base.html" %}
+
+{% block title %}
+    {% block page_title %}{%endblock %} - {{ location }}
+{% endblock %}
+{% block content %}
+<style>
+.body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+.bg {
+  height: 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.button1 {
+  border-radius: 20px;
+  background-color: white;
+  color: black;
+  padding: 7px;
+  transition-duration: 0.4s;
+  cursor: pointer;
+}
+
+.button1:hover {
+  color: white;
+  background-color: #037bfc;
+  border-color: #037bfc;
+}
+</style>
+<body class="body">
+    <img src="{{ url_for('static', filename='whiteBackground.jpg') }}" class="bg"/>
+    <div>
+        <form method="post" style="width:30%; position: absolute; top: 30%; left: 35%; border: 3px solid black; padding: 35px; border-radius: 20px; background-color: black">
+            {{ form.hidden_tag() }}
+            {% block auth %} {% endblock %}
+        </form>
+    </div>
+</body>
+{% endblock %}
