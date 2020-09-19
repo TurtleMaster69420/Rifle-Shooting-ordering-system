@@ -1,7 +1,21 @@
+.box {
+  width:30%;
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  -ms-transform: translateY(-50%);
+  transform: translateY(-50%);
+  left: 35%;
+  border: 3px solid black;
+  padding: 35px;
+  border-radius: 20px;
+  background-color: black;
+}
+
 .body {
-    margin: 0;
-    height: 100%;
-    overflow: hidden;
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .bg {

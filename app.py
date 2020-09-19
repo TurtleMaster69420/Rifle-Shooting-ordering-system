@@ -2,12 +2,13 @@ from flask import Flask, session, redirect, render_template, request
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from flask_bootstrap import Bootstrap
-from flask_mail import Mail
+from flask_mail import Mail, Message
+from itsdangerous import URLSafeTimedSerializer
 from login_form import loginForm
+from dotenv import load_dotenv
 from register_form import registerForm
 import datetime
 import os
-from dotenv import load_dotenv
 
 
 load_dotenv()
@@ -20,13 +21,14 @@ app = Flask(__name__)
 # TODO: Push all changes
 
 app.config.update(
-    SECRET_KEY=os.environ.get('SECRET_KEY'),
+    SECRET_KEY=os.environ.get("SECRET_KEY"),
+    SECURITY_PASSWORD_SALT=os.environ.get("SECURITY_PASSWORD_SALT"),
     SQLALCHEMY_TRACK_MODIFICATIONS=False,
     SQLALCHEMY_DATABASE_URI="sqlite:///site.db",
     MAIL_SERVER="smtp.gmail.com",
     MAIL_PORT=465,
     MAIL_USERNAME="dstackordering@gmail.com",
-    MAIL_PASSWORD=os.environ.get('MAIL_PASSWORD'),
+    MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD"),
     MAIL_USE_TLS=False,
     MAIL_USE_SSL=True
 )
@@ -35,6 +37,7 @@ bcrypt = Bcrypt(app)
 db = SQLAlchemy(app)
 bootstrap = Bootstrap(app)
 mail = Mail(app)
+serialiser = URLSafeTimedSerializer(app.config.get("SECRET_KEY"))
 
 
 class User(db.Model):
@@ -44,6 +47,7 @@ class User(db.Model):
     type = db.Column(db.String(50), unique=False, nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.datetime.now)
     pwHash = db.Column(db.String(60), unique=False, nullable=False)
+    confirmed = db.Column(db.Boolean)
     orders = db.relationship("Order", backref="orderer", lazy=True)
 
     def __repr__(self):
@@ -84,7 +88,7 @@ def authenticate(page_type=None):
     if "user" not in session:
         return not page_type, pages[None]
     user = User.query.get(session["user"])
-    return user.type == page_type, user.pages[user.type]
+    return user.type == page_type, pages[user.type]
 
 
 def create_user(name, email, password):
@@ -95,12 +99,10 @@ def create_user(name, email, password):
     :return: A tuple (`result`, `message`), where `result` is a boolean indicating whether the user was created or not, and
     `message` is the message that will be displayed to the user
     """
-    if User.query.filter_by(email=email).first():
-        return False, "That email is already in use"
     pwHash = bcrypt.generate_password_hash(password, 10)
-    db.session.add(User(name=name, email=email, pwHash=pwHash, type="orderer"))
+    db.session.add(User(name=name, email=email, pwHash=pwHash, type="orderer", confirmed=False))
     db.session.commit()
-    return True, "Your account was created!"
+    return serialiser.dumps(email, salt=app.config.get("SECURITY_PASSWORD_SALT"))
 
 
 def verify_login(email, password):
@@ -117,11 +119,6 @@ def verify_login(email, password):
         return True
     else:
         return False
-
-
-def find_user(email):
-    #returns True if emails in email is already in database
-    return False
 
 
 @app.route('/')
@@ -157,11 +154,37 @@ def register():
     if not form.validate_on_submit():
         return render_template('register.html', form=form, location="Register")
     register_info = request.form
-    if not find_user(register_info['email']):
-        #function to add guy to database
-        return 'Successfully registered, happy days'
-    else:
-        return render_template("register.html", form=form, invalid=True, location="Register")
+    token = create_user(register_info.get("name"), register_info.get("email"), register_info.get("password"))
+    msg = Message("Confirm account", sender="dstackordering@gmail.com", recipients=[register_info.get("email")])
+    msg.body = f"""
+    Here is your confirmation link: 127.0.0.1:5000/confirm?action=register&token={token}
+    """
+    mail.send(msg)
+    return redirect("/confirm?action=register")
+
+
+@app.route("/confirm")
+def confirm():
+    if not request.args.get("token"):
+        return "Ok cool"
+        # return render_template("confirm.html", action=action, done=False)
+    try:
+        # verify that the token is valid and hasn't expired
+        email = serialiser.loads(
+            request.args.get("token"),
+            salt=app.config.get("SECURITY_PASSWORD_SALT"),
+            max_age=28800  # 8 hours
+        )
+        user = User.query.filter_by(email=email).first()
+        assert email
+    except:
+        return "BAD"
+        # return render_template("confirm.html", action="Invalid")
+    user.confirmed = True
+    db.session.add(user)
+    session["user"] = user.id
+    return "YAY"
+    # return render_template("confirm.html", action=action, done=True)
 
 
 @app.route('/forgot_password')

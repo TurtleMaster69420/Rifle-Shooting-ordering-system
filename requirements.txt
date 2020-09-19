@@ -1,7 +1,10 @@
+itsdangerous
 flask
 flask-wtf
-wtforms
 flask-bootstrap4
 flask-bcrypt
 flask-sqlalchemy
+python-dotenv
+wtforms
 datetime
+pyotp

@@ -6,16 +6,18 @@
     <div class="form-group">
         {{ form.email(size = 20, class='form-control')   }}
         {% if form.email.errors %}
-            <ul class="errors">{% for error in form.email.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+            <ul class="errors">{% for error in form.email.errors %}<li class="text-danger">{{ error }}</li>{% endfor %}</ul>
         {% endif %}
     </div>
 
     <div class="form-group">
         {{ form.password(size = 20, class='form-control')  }}
         {% if form.password.errors %}
-            <ul class="errors">{% for error in form.password.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+            <ul class="errors">{% for error in form.password.errors %}<li class="text-danger">{{ error }}</li>{% endfor %}</ul>
         {% endif %}
-        <small class="form-text text-muted"><a href="/" style="color: white;"> Forgot Password? </a></small>
+        <small class="form-text text-muted small-link"><a href="/" style="color: white; float: left;"> Forgot Password? </a></small>
+        <small class="form-text text-muted small-link"><a href="/register" style="color: white; float: right;"> Don't have an account? </a></small>
     </div>
-    <button type="submit" class="button1">Submit</button>
+    <br>
+    <button type="submit" class="button1">Log in</button>
 {% endblock %}
