@@ -1,20 +1,39 @@
 from flask import Flask, session, redirect, render_template, request
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
-import datetime
 from flask_bootstrap import Bootstrap
+from flask_mail import Mail
 from login_form import loginForm
 from register_form import registerForm
+import datetime
 
 app = Flask(__name__)
+# TODO: Update dependencies
+# TODO: Keep email password as environment variable
+# TODO: Implement register functionality
+# TODO: Fix Kalaish's validator logic
+# TODO: Fix Tarun's css
+# TODO: Polish/explore HTML
+# TODO: Implement forgot_password.html
+# TODO: Push all changes
 
-app.config["SECRET_KEY"] = "YNeGB;aX+5Pu6(}>?T?xs0sn3a{PZ0r7z|-K"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///site.db"
+app.config.update(
+    SECRET_KEY="YNeGB;aX+5Pu6(}>?T?xs0sn3a{PZ0r7z|-K",
+    SQLALCHEMY_TRACK_MODIFICATIONS=False,
+    SQLALCHEMY_DATABASE_URI="sqlite:///site.db",
+    MAIL_SERVER="smtp.gmail.com",
+    MAIL_PORT=465,
+    MAIL_USERNAME="dstackordering@gmail.com",
+    MAIL_PASSWORD="kalaishisreallystupid39429iidoPSIIOCNH)(SOH((@OInNKLFNAIOjiojIOA",
+    MAIL_USE_TLS=False,
+    MAIL_USE_SSL=True
+)
 
 bcrypt = Bcrypt(app)
 db = SQLAlchemy(app)
 bootstrap = Bootstrap(app)
+mail = Mail(app)
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -97,6 +116,7 @@ def verify_login(email, password):
     else:
         return False
 
+
 def find_user(email):
     #returns True if emails in email is already in database
     return False
@@ -139,7 +159,7 @@ def register():
         #function to add guy to database
         return 'Successfully registered, happy days'
     else:
-        return render_template('register.html', form=form, invalid=True, location="Register")
+        return render_template("register.html", form=form, invalid=True, location="Register")
 
 
 @app.route('/forgot_password')
@@ -147,9 +167,7 @@ def forgot_password():
     allowed, new_page = authenticate()
     if not allowed:
         return redirect(new_page)
-    return render_template("forot_password")
-
-
+    return render_template("forgot_password.html")
 
 
 if __name__ == '__main__':
