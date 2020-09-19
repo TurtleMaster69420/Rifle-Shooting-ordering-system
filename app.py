@@ -8,7 +8,6 @@ from register_form import registerForm
 import datetime
 
 app = Flask(__name__)
-# TODO: Update dependencies
 # TODO: Keep email password as environment variable
 # TODO: Implement register functionality
 # TODO: Fix Kalaish's validator logic
