@@ -6,24 +6,27 @@ from flask_mail import Mail
 from login_form import loginForm
 from register_form import registerForm
 import datetime
+import os
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 app = Flask(__name__)
-# TODO: Keep email password as environment variable
 # TODO: Implement register functionality
-# TODO: Fix Kalaish's validator logic
 # TODO: Fix Tarun's css
 # TODO: Polish/explore HTML
 # TODO: Implement forgot_password.html
 # TODO: Push all changes
 
 app.config.update(
-    SECRET_KEY="YNeGB;aX+5Pu6(}>?T?xs0sn3a{PZ0r7z|-K",
+    SECRET_KEY=os.environ.get('SECRET_KEY'),
     SQLALCHEMY_TRACK_MODIFICATIONS=False,
     SQLALCHEMY_DATABASE_URI="sqlite:///site.db",
     MAIL_SERVER="smtp.gmail.com",
     MAIL_PORT=465,
     MAIL_USERNAME="dstackordering@gmail.com",
-    MAIL_PASSWORD="kalaishisreallystupid39429iidoPSIIOCNH)(SOH((@OInNKLFNAIOjiojIOA",
+    MAIL_PASSWORD=os.environ.get('MAIL_PASSWORD'),
     MAIL_USE_TLS=False,
     MAIL_USE_SSL=True
 )

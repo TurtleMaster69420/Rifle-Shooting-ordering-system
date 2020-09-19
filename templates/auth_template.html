@@ -4,35 +4,14 @@
     {% block page_title %}{%endblock %} - {{ location }}
 {% endblock %}
 {% block content %}
-<style>
-.body {
-    margin: 0;
-    height: 100%;
-    overflow: hidden;
-}
 
-.bg {
-  height: 100%;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-}
+{% block styles %}
+{{super()}}
+<link rel="stylesheet"
+      href="{{url_for('.static', filename='styles.css')}}">
+{% endblock %}
 
-.button1 {
-  border-radius: 20px;
-  background-color: white;
-  color: black;
-  padding: 7px;
-  transition-duration: 0.4s;
-  cursor: pointer;
-}
 
-.button1:hover {
-  color: white;
-  background-color: #037bfc;
-  border-color: #037bfc;
-}
-</style>
 <body class="body">
     <img src="{{ url_for('static', filename='whiteBackground.jpg') }}" class="bg"/>
     <div>

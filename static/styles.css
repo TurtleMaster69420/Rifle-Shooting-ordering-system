@@ -1,0 +1,27 @@
+.body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+.bg {
+  height: 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.button1 {
+  border-radius: 20px;
+  background-color: white;
+  color: black;
+  padding: 7px;
+  transition-duration: 0.4s;
+  cursor: pointer;
+}
+
+.button1:hover {
+  color: white;
+  background-color: #037bfc;
+  border-color: #037bfc;
+}
