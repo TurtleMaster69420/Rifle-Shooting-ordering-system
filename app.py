@@ -93,20 +93,21 @@ def authenticate(page_type=None):
     return user.type == page_type, pages[user.type]
 
 
-def create_user(name, email, password):
+def create_user(name, email, password, user_type="orderer"):
     """
     :param name: The user's real name
     :param email: The user's email address (used to contact them)
     :param password: The password the user set
-    :return: A tuple (`result`, `message`), where `result` is a boolean indicating whether the user was created or not, and
-    `message` is the message that will be displayed to the user
+    :param user_type: The permission level of the user (orderer, staff, manager, or None)
+    :return: A string called `token`, which is the serialised token the server will use for the verification email
     """
-    pwHash = bcrypt.generate_password_hash(password, 10)
+
     if User.query.filter_by(email=email).first():
         return None
-    db.session.add(User(name=name, email=email, pwHash=pwHash, type="orderer", confirmed=False))
+    pwd_hash = bcrypt.generate_password_hash(password, 10)
+    db.session.add(User(name=name, email=email, pwHash=pwd_hash, type=user_type, confirmed=False))
     db.session.commit()
-    return serialiser.dumps(email+"register", salt=app.config.get("SECURITY_PASSWORD_SALT"))
+    return serialiser.dumps(email, salt=app.config.get("SECURITY_PASSWORD_SALT"))
 
 
 def verify_login(email, password):
@@ -116,10 +117,11 @@ def verify_login(email, password):
     :return: `result`, which is a boolean indicating whether the login credentials were correct or not
     """
     user = User.query.filter_by(email=email).first()
-    if not user:
+    if not user or not user.confirmed:
         return False
 
     if bcrypt.check_password_hash(user.pwHash, password):
+        session["user"] = user.id
         return True
     else:
         return False
@@ -140,13 +142,13 @@ def login():
     if not allowed:
         return redirect(new_page)
     form = loginForm()
-    if not form.validate_on_submit():
-        return render_template('login.html', form=form, location="Login")
-    login_info = request.form
-    if verify_login(login_info['email'], login_info['password']):
-        return 'Successfully logged in, happy days'
-    else:
-        return render_template('login.html', form=form, invalid=True, location="Login")
+    if form.validate_on_submit():
+        login_info = request.form
+        if verify_login(login_info['email'], login_info['password']):
+            return redirect("/")
+        else:
+            flash("Either the email doesn't exist or the password is incorrect", "text-danger")
+    return render_template('login.html', form=form)
 
 
 @app.route('/register', methods=["GET", "POST"])
@@ -163,20 +165,18 @@ def register():
         else:
             msg = Message("Confirm account", sender="dstackordering@gmail.com", recipients=[register_info.get("email")])
             msg.body = f"""
-            Here is your confirmation link: 127.0.0.1:5000/confirm?action=register&token={token}
+Here is the link to confirm your account: 127.0.0.1:5000/confirm?token={token}
             """
             mail.send(msg)
-            flash("A verification email was sent to your account!", "text-success")
-    return render_template('register.html', form=form, location="Register")
+            flash("A confirmation email has been sent to your account! Please check both your inbox and spam folder", "text-success")
+    return render_template('register.html', form=form)
 
 
 @app.route("/confirm")
 def confirm():
-    print("yo..?")
     allowed, new_page = authenticate()
     if not allowed:
         return redirect(new_page)
-    action = request.args.get("action")
     try:
         # verify that the token is valid and hasn't expired
         email = serialiser.loads(
@@ -184,19 +184,14 @@ def confirm():
             salt=app.config.get("SECURITY_PASSWORD_SALT"),
             max_age=28800  # 8 hours
         )
-        assert email.endswith(action)
-        email = email[:-8]
         user = User.query.filter_by(email=email).first()
         assert user
     except:
-        print("woah")
-        return render_template("confirm.html", action="Invalid", location="Confirmation")
-    print("bozo")
+        return render_template("error.html")
     user.confirmed = True
-    db.session.add(user)
+    db.session.commit()
     session["user"] = user.id
-    print("yo what the lo")
-    return render_template("confirm.html", action=action, location="Confirmation")
+    return redirect("/")
 
 
 @app.route('/forgot_password', methods=["GET", "POST"])
@@ -205,7 +200,20 @@ def forgot_password():
     if not allowed:
         return redirect(new_page)
     form = forgot_password_form()
+    if form.validate_on_submit():
+        email = request.form["email"]
+        if not User.query.filter_by(email=email).first():
+            form.email.errors.append("There is no account with the provided email")
+        else:
+            msg = Message("Reset password", sender="dstackordering@gmail.com", recipients=[email])
+            token = serialiser.dumps(email+"resetpwd", salt=app.config.get("SECURITY_PASSWORD_SALT"))
+            msg.body = f"""
+Here is the link to reset your password: 127.0.0.1:5000/set_new_password?token={token}
+            """
+            mail.send(msg)
+            flash("We have sent an email to change your password, please check both your inbox and spam folder", "text-success")
     return render_template("forgot_password.html", form=form)
+
 
 @app.route('/set_new_password', methods=["GET", "POST"])
 def set_new_password():
@@ -213,6 +221,26 @@ def set_new_password():
     if not allowed:
         return redirect(new_page)
     form = set_new_password_form()
+    if request.method == "GET" or form.validate_on_submit():
+        try:
+            payload = serialiser.loads(
+                request.args.get("token"),
+                salt=app.config.get("SECURITY_PASSWORD_SALT"),
+                max_age=28800
+            )
+            assert payload.endswith("resetpwd")
+            email = payload[:-8]
+            user = User.query.filter_by(email=email).first()
+
+            assert user
+        except:
+            return render_template("error.html")
+        if form.validate_on_submit():
+            user.pwHash = bcrypt.generate_password_hash(request.form["new_password"], 10)
+            print(request.form["new_password"])
+            db.session.commit()
+            flash("Your password has been successfully updated!", "text-success")
+            return redirect("/login")
     return render_template("set_new_password.html", form=form)
 
 

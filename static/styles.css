@@ -40,6 +40,12 @@
   border-color: #037bfc;
 }
 
+.important {
+  color: white;
+  font-weight: bold;
+  font-size: 20px;
+}
+
 .box {
   margin: auto;
   width:35%;
@@ -51,4 +57,6 @@
 
 body {
   margin: auto;
+  background-image: url("/static/auth_background.jpg");
+  background-size: cover;
 }

@@ -1,8 +1,5 @@
 {% extends "bootstrap/base.html" %}
 
-{% block title %}
-    {% block page_title %} {{ location }} {% endblock %}
-{% endblock %}
 {% block content %}
 
 {% block styles %}
@@ -13,7 +10,6 @@
 
 
 <body class="body">
-    <img src="{{ url_for('static', filename='whiteBackground.jpg') }}" class="bg"/>
     <div>
         <form class="box" method="post">
             {{ form.hidden_tag() }}

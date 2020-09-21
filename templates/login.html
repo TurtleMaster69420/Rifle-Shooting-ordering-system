@@ -1,5 +1,9 @@
 {% extends "auth_template.html" %}
 
+{% block title %}
+    {% block page_title %} Login {% endblock %}
+{% endblock %}
+
 {% block auth %}
     <h2><b style="color: white">Log In</b></h2>
     <br>
@@ -19,5 +23,12 @@
         <small class="form-text text-muted small-link"><a href="/register" style="color: white; float: right;"> Don't have an account? </a></small>
     </div>
     <br>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <p class="{{ category }}">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
     <button type="submit" class="button1">Log in</button>
 {% endblock %}
