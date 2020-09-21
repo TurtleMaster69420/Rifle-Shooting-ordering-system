@@ -5,6 +5,8 @@ from flask_bootstrap import Bootstrap
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
 from login_form import loginForm
+from forgot_password_form import forgot_password_form
+from set_new_password_form import set_new_password_form
 from dotenv import load_dotenv
 from register_form import registerForm
 import datetime
@@ -197,12 +199,21 @@ def confirm():
     return render_template("confirm.html", action=action, location="Confirmation")
 
 
-@app.route('/forgot_password')
+@app.route('/forgot_password', methods=["GET", "POST"])
 def forgot_password():
     allowed, new_page = authenticate()
     if not allowed:
         return redirect(new_page)
-    return render_template("forgot_password.html")
+    form = forgot_password_form()
+    return render_template("forgot_password.html", form=form)
+
+@app.route('/set_new_password', methods=["GET", "POST"])
+def set_new_password():
+    allowed, new_page = authenticate()
+    if not allowed:
+        return redirect(new_page)
+    form = set_new_password_form()
+    return render_template("set_new_password.html", form=form)
 
 
 if __name__ == '__main__':

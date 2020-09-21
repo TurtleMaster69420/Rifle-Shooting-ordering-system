@@ -7,4 +7,3 @@ flask-sqlalchemy
 python-dotenv
 wtforms
 datetime
-pyotp
