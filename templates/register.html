@@ -31,5 +31,12 @@
         {% endif %}
         <small class="form-text text-muted"><a href="/" style="color: white;"> Already have an account? </a></small>
     </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <p class="{{ category }}">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
     <button type="submit" class="button1">Create account</button>
 {% endblock %}

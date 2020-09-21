@@ -1,4 +1,4 @@
-from flask import Flask, session, redirect, render_template, request
+from flask import Flask, session, redirect, render_template, request, flash
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from flask_bootstrap import Bootstrap
@@ -100,9 +100,11 @@ def create_user(name, email, password):
     `message` is the message that will be displayed to the user
     """
     pwHash = bcrypt.generate_password_hash(password, 10)
+    if User.query.filter_by(email=email).first():
+        return None
     db.session.add(User(name=name, email=email, pwHash=pwHash, type="orderer", confirmed=False))
     db.session.commit()
-    return serialiser.dumps(email, salt=app.config.get("SECURITY_PASSWORD_SALT"))
+    return serialiser.dumps(email+"register", salt=app.config.get("SECURITY_PASSWORD_SALT"))
 
 
 def verify_login(email, password):
@@ -151,23 +153,28 @@ def register():
     if not allowed:
         return redirect(new_page)
     form = registerForm()
-    if not form.validate_on_submit():
-        return render_template('register.html', form=form, location="Register")
-    register_info = request.form
-    token = create_user(register_info.get("name"), register_info.get("email"), register_info.get("password"))
-    msg = Message("Confirm account", sender="dstackordering@gmail.com", recipients=[register_info.get("email")])
-    msg.body = f"""
-    Here is your confirmation link: 127.0.0.1:5000/confirm?action=register&token={token}
-    """
-    mail.send(msg)
-    return redirect("/confirm?action=register")
+    if form.validate_on_submit():
+        register_info = request.form
+        token = create_user(register_info.get("name"), register_info.get("email"), register_info.get("password"))
+        if not token:
+            form.email.errors.append("This email has already been used, try a different one")
+        else:
+            msg = Message("Confirm account", sender="dstackordering@gmail.com", recipients=[register_info.get("email")])
+            msg.body = f"""
+            Here is your confirmation link: 127.0.0.1:5000/confirm?action=register&token={token}
+            """
+            mail.send(msg)
+            flash("A verification email was sent to your account!", "text-success")
+    return render_template('register.html', form=form, location="Register")
 
 
 @app.route("/confirm")
 def confirm():
-    if not request.args.get("token"):
-        return "Ok cool"
-        # return render_template("confirm.html", action=action, done=False)
+    print("yo..?")
+    allowed, new_page = authenticate()
+    if not allowed:
+        return redirect(new_page)
+    action = request.args.get("action")
     try:
         # verify that the token is valid and hasn't expired
         email = serialiser.loads(
@@ -175,16 +182,19 @@ def confirm():
             salt=app.config.get("SECURITY_PASSWORD_SALT"),
             max_age=28800  # 8 hours
         )
+        assert email.endswith(action)
+        email = email[:-8]
         user = User.query.filter_by(email=email).first()
-        assert email
+        assert user
     except:
-        return "BAD"
-        # return render_template("confirm.html", action="Invalid")
+        print("woah")
+        return render_template("confirm.html", action="Invalid", location="Confirmation")
+    print("bozo")
     user.confirmed = True
     db.session.add(user)
     session["user"] = user.id
-    return "YAY"
-    # return render_template("confirm.html", action=action, done=True)
+    print("yo what the lo")
+    return render_template("confirm.html", action=action, location="Confirmation")
 
 
 @app.route('/forgot_password')
