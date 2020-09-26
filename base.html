@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body {
+  font-family: "Lato", sans-serif;
+}
+
+.sidenav {
+  height: 100%;
+  width: 0;
+  position: fixed;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  background-color: #111;
+  overflow-x: hidden;
+  transition: 0.35s;
+  padding-top: 60px;
+}
+
+.sidenav a {
+  padding: 8px 8px 8px 32px;
+  text-decoration: none;
+  font-size: 25px;
+  color: white;
+  display: block;
+  transition: 0.15s;
+}
+
+.sidenav a:hover {
+  color: #f1f1f1;
+}
+
+.sidenav .closebtn {
+  position: absolute;
+  top: 0;
+  right: 25px;
+  font-size: 36px;
+  margin-left: 50px;
+  color: #818181;
+}
+
+@media screen and (max-height: 450px) {
+  .sidenav {padding-top: 15px;}
+  .sidenav a {font-size: 18px;}
+}
+
+.sidenav a, .dropdown-btn {
+  padding: 6px 8px 6px 16px;
+  text-decoration: none;
+  font-size: 20px;
+  color: #818181;
+  display: block;
+  border: none;
+  background: none;
+  width:100%;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+
+.sidenav a:hover, .dropdown-btn:hover {
+  color: #f1f1f1;
+  transition: 0.5s;
+}
+.dropdown-container {
+    display: none;
+    background-color: #262626;
+    padding-left: 23px;
+}
+
+.button {
+  border-radius: 20px;
+  padding: 7px;
+  transition-duration: 0.4s;
+  cursor: pointer;
+  height: 30px;
+  width:  200px;
+  margin-left: 10px;
+}
+.button.join{
+  color: white;
+  background-color: green;
+  border-color: green;
+}
+.button.create{
+  color: white;
+  background-color: #037bfc;
+  border-color: #037bfc;
+}
+
+.sidenav .logout:hover {
+  color: red;
+}
+
+#main {
+  transition: margin-left 0.35s;
+  padding: 20px;
+}
+
+</style>
+</head>
+
+
+<body>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<div id="mySidenav" class="sidenav">
+  <a href="#" style="margin-left:-7px; padding-bottom: 8px;"> <i class="fa fa-fw fa-home"></i> Overview</a>
+  <a href="#" style="padding-bottom: 8px;"> <i class="fa fa-info"></i>  About</a>
+
+  <button class="dropdown-btn" style="margin-left:-5px;"><i class="fa fa-chevron-down"></i> Groups In</button>
+    <div class="dropdown-container">
+        <a href="#">Group 1</a>
+        <a href="#">Group 2</a>
+        <a href="#">Group 3</a>
+    </div>
+
+  <button class="dropdown-btn" style="margin-left:-5px;"><i class="fa fa-chevron-down"></i> Groups Owned</button>
+    <div class="dropdown-container">
+        <a href="#">Group 4</a>
+        <a href="#">Group 5</a>
+        <a href="#">Group 6</a>
+    </div>
+
+  <button class="button join"><i class="fa fa-arrow-up"></i><b> Join Group</b></button>
+  <button class="button create"><i class="fa fa-plus"></i><b>   Create Group</b></button>
+  <a href="#" style="position: absolute; bottom: 7%" class="logout"><i class="fa fa-sign-out"></i> Logout</a>
+</div>
+
+<div id="main">
+    <span style="font-size:30px;cursor:pointer" id="nbar" state="closed" onclick="toggleNav()">&#9776;</span>
+    {% block content %}
+
+    {% endblock %}
+</div>
+
+<script>
+function openNav() {
+  document.getElementById("mySidenav").style.width = "250px";
+  document.getElementById("main").style.marginLeft = "250px";
+}
+
+function closeNav() {
+  document.getElementById("mySidenav").style.width = "0";
+  document.getElementById("main").style.marginLeft= "0";
+}
+
+function toggleNav() {
+    var navbar = document.getElementById("nbar");
+
+    if (navbar.state == "closed") {
+        navbar.state = "open";
+        openNav();
+    } else {
+        navbar.state = "closed";
+        closeNav();
+    }
+}
+
+var dropdown = document.getElementsByClassName("dropdown-btn");
+var i;
+
+for (i = 0; i < dropdown.length; i++) {
+  dropdown[i].addEventListener("click", function() {
+  this.classList.toggle("active");
+  var dropdownContent = this.nextElementSibling;
+  if (dropdownContent.style.display === "block") {
+  dropdownContent.style.display = "none";
+  } else {
+  dropdownContent.style.display = "block";
+  }
+  });
+}
+</script>
+
+
+</body>
+</html>
