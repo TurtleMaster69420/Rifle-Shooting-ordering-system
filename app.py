@@ -15,6 +15,7 @@ import os
 
 load_dotenv()
 
+
 app = Flask(__name__)
 # TODO: Implement register functionality
 # TODO: Fix Tarun's css
