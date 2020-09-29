@@ -250,5 +250,20 @@ def orderer_home():
         return redirect(new_page)
     return render_template("orderer_home.html")
 
+@app.route('/orderer/join', methods=["GET", "POST"])
+def join_group():
+    allowed, new_page = authenticate("orderer")
+    if not allowed:
+        return redirect(new_page)
+    return render_template("join_group.html")
+
+
+@app.route('/orderer/create', methods=["GET", "POST"])
+def create_group():
+    allowed, new_page = authenticate("orderer")
+    if not allowed:
+        return redirect(new_page)
+    return render_template("create_group.html")
+
 if __name__ == '__main__':
     app.run()
