@@ -127,7 +127,6 @@ def verify_login(email, password):
     else:
         return False
 
-
 @app.route('/')
 def index():  # NOTE: session is cleared when the BROWSER is closed, not the last window of the page
     allowed, new_page = authenticate()
@@ -244,6 +243,12 @@ def set_new_password():
             return redirect("/login")
     return render_template("set_new_password.html", form=form)
 
+@app.route('/orderer/home', methods=["GET", "POST"])
+def orderer_home():
+    allowed, new_page = authenticate("orderer")
+    if not allowed:
+        return redirect(new_page)
+    return render_template("orderer_home.html")
 
 if __name__ == '__main__':
     app.run()
