@@ -272,5 +272,12 @@ def about():
         return redirect(new_page)
     return render_template("about.html")
 
+@app.route('/orderer/groups', methods=["GET", "POST"])
+def groups():
+    allowed, new_page = authenticate("orderer")
+    if not allowed:
+        return redirect(new_page)
+    return render_template("groups.html")
+
 if __name__ == '__main__':
     app.run()
