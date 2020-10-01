@@ -278,6 +278,6 @@ def groups():
     if not allowed:
         return redirect(new_page)
     return render_template("groups.html")
-
+di
 if __name__ == '__main__':
     app.run()
