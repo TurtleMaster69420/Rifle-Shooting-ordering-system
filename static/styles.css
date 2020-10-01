@@ -183,3 +183,8 @@ body {
     width: 40px !important;
     text-align: center !important;
 }
+
+.success {
+    color: limegreen;
+    font-weight: bold;
+}

@@ -14,9 +14,15 @@
 
 </style>
 </head>
-
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <p class="{{ category }}">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
     <h2>Overview</h2>
-    <span>A total of <span class="owedtoyou">$111</span> is owed to you in:
+    <p>A total of <span class="owedtoyou">$111</span> is owed to you in:
         <br> - Group 1 <span class="owedtoyou">($11)</span>
         <br> - Group 2 <span class="owedtoyou">($100)</span>
     </p>
