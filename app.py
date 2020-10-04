@@ -17,12 +17,8 @@ load_dotenv()
 
 
 app = Flask(__name__)
-# TODO: Implement register functionality
-# TODO: Fix Tarun's css
-# TODO: Polish/explore HTML
-# TODO: Implement forgot_password.html
-# TODO: Push all changes
 
+# load certain config variables from an env file
 app.config.update(
     SECRET_KEY=os.environ.get("SECRET_KEY"),
     SECURITY_PASSWORD_SALT=os.environ.get("SECURITY_PASSWORD_SALT"),
@@ -36,6 +32,7 @@ app.config.update(
     MAIL_USE_SSL=True
 )
 
+# instantiate all the flask classes we'll need
 bcrypt = Bcrypt(app)
 db = SQLAlchemy(app)
 bootstrap = Bootstrap(app)
@@ -78,6 +75,8 @@ class Item(db.Model):
     orders = db.relationship("Order", backref="item", lazy=True)
 
 
+# this function checks whether the user is allowed on the current page, taking in the parameter of the page type
+# (e.g. manager, orderer, staff or someone who hasn't logged in (NoneType object)
 def authenticate(page_type=None):
     """
     :param page_type: either orderer, staff, manager or a NoneType
@@ -88,12 +87,14 @@ def authenticate(page_type=None):
              "orderer": "/orderer/home",
              "staff": "/staff/home",
              "manager": "/manager/home"}
-    if "user" not in session:
+    user = User.query.get(session.get("user"))
+    if not user or not user.confirmed:
         return not page_type, pages[None]
-    user = User.query.get(session["user"])
     return user.type == page_type, pages[user.type]
 
 
+# this function will add a user to the database but mark them as unconfirmed and generate a secure token for email
+# verification
 def create_user(name, email, password, user_type="orderer"):
     """
     :param name: The user's real name
@@ -105,12 +106,13 @@ def create_user(name, email, password, user_type="orderer"):
 
     if User.query.filter_by(email=email).first():
         return None
-    pwd_hash = bcrypt.generate_password_hash(password, 10)
+    pwd_hash = bcrypt.generate_password_hash(password, 10) # generates bcrypt password hash (very secure)
     db.session.add(User(name=name, email=email, pwHash=pwd_hash, type=user_type, confirmed=False))
     db.session.commit()
     return serialiser.dumps(email, salt=app.config.get("SECURITY_PASSWORD_SALT"))
 
 
+# this function checks whether the provided email and password combination exists in the database
 def verify_login(email, password):
     """
     :param email: The user's email
@@ -127,8 +129,10 @@ def verify_login(email, password):
     else:
         return False
 
+
+# "main page" which will always redirect users to the appropriate part of the page
 @app.route('/')
-def index():  # NOTE: session is cleared when the BROWSER is closed, not the last window of the page
+def index():
     allowed, new_page = authenticate()
     if allowed:
         return redirect("/login")
@@ -142,8 +146,12 @@ def login():
     if not allowed:
         return redirect(new_page)
     form = loginForm()
+
+    # verify whether the form is valid or not
     if form.validate_on_submit():
         login_info = request.form
+
+        # verify the login details
         if verify_login(login_info['email'], login_info['password']):
             return redirect("/")
         else:
@@ -157,12 +165,18 @@ def register():
     if not allowed:
         return redirect(new_page)
     form = registerForm()
+
+    # verify whether the form is valid or not
     if form.validate_on_submit():
         register_info = request.form
+
+        # create token
         token = create_user(register_info.get("name"), register_info.get("email"), register_info.get("password"))
         if not token:
             form.email.errors.append("This email has already been used, try a different one")
         else:
+
+            # send confirmation email to confirm the user's account
             msg = Message("Confirm account", sender="dstackordering@gmail.com", recipients=[register_info.get("email")])
             msg.body = f"""
 Here is the link to confirm your account: 127.0.0.1:5000/confirm?token={token}
@@ -172,7 +186,7 @@ Here is the link to confirm your account: 127.0.0.1:5000/confirm?token={token}
     return render_template('register.html', form=form)
 
 
-@app.route("/confirm")
+@app.route("/confirm", methods=["GET"])
 def confirm():
     allowed, new_page = authenticate()
     if not allowed:
@@ -188,9 +202,13 @@ def confirm():
         assert user
     except:
         return render_template("error.html")
+
+    # confirm the user and set their session cookie as their user id (indicating they are now logged in)
     user.confirmed = True
     db.session.commit()
     session["user"] = user.id
+    flash("Your account has been created! Enjoy your experience.", "success")
+    print("flashed")
     return redirect("/")
 
 
@@ -200,11 +218,15 @@ def forgot_password():
     if not allowed:
         return redirect(new_page)
     form = forgot_password_form()
+
+    # verify whether the form is valid or not
     if form.validate_on_submit():
         email = request.form["email"]
         if not User.query.filter_by(email=email).first():
             form.email.errors.append("There is no account with the provided email")
         else:
+
+            # send confirmation email to reset the user's password
             msg = Message("Reset password", sender="dstackordering@gmail.com", recipients=[email])
             token = serialiser.dumps(email+"resetpwd", salt=app.config.get("SECURITY_PASSWORD_SALT"))
             msg.body = f"""
@@ -221,8 +243,11 @@ def set_new_password():
     if not allowed:
         return redirect(new_page)
     form = set_new_password_form()
+
+    # if the request is valid or a GET request is made to the page
     if request.method == "GET" or form.validate_on_submit():
         try:
+            # verify that the token is in the correct format and hasn't expired
             payload = serialiser.loads(
                 request.args.get("token"),
                 salt=app.config.get("SECURITY_PASSWORD_SALT"),
@@ -235,42 +260,56 @@ def set_new_password():
             assert user
         except:
             return render_template("error.html")
+
+        # if the user is resetting their password
         if form.validate_on_submit():
+            # overwrite existing password
             user.pwHash = bcrypt.generate_password_hash(request.form["new_password"], 10)
             print(request.form["new_password"])
             db.session.commit()
-            flash("Your password has been successfully updated!", "text-success")
+            flash("Your password has been successfully updated! Log in with the new password", "text-success")
             return redirect("/login")
     return render_template("set_new_password.html", form=form)
 
-@app.route('/orderer/home', methods=["GET", "POST"])
+
+@app.route("/orderer/home", methods=["GET"])
 def orderer_home():
     allowed, new_page = authenticate("orderer")
     if not allowed:
         return redirect(new_page)
     return render_template("orderer_home.html")
 
-@app.route('/orderer/join', methods=["GET", "POST"])
-def join_group():
-    allowed, new_page = authenticate("orderer")
-    if not allowed:
-        return redirect(new_page)
-    return render_template("join_group.html")
 
-
-@app.route('/orderer/create', methods=["GET", "POST"])
-def create_group():
-    allowed, new_page = authenticate("orderer")
-    if not allowed:
-        return redirect(new_page)
-    return render_template("create_group.html")
-
-@app.route('/orderer/about', methods=["GET", "POST"])
-def about():
+@app.route("/orderer/about")
+def orderer_about():
     allowed, new_page = authenticate("orderer")
     if not allowed:
         return redirect(new_page)
     return render_template("about.html")
+
+
+@app.route("/orderer/create", methods=["POST"])
+def orderer_create():
+    allowed, new_page = authenticate("orderer")
+    if not allowed:
+        return redirect(new_page)
+    name = request.form.get("invite")
+    if not name:
+        return redirect(new_page)
+    # TODO: implement functionality to creaete group
+    return redirect(new_page)
+
+
+@app.route("/orderer/join", methods=["POST"])
+def orderer_join():
+    allowed, new_page = authenticate("orderer")
+    if not allowed:
+        return redirect(new_page)
+    invite_code = request.form.get("invite")
+    if not invite_code or True:
+        return redirect(new_page)
+    return redirect(f"/orderer/group/{invite_code}")
+
 
 @app.route('/orderer/groups', methods=["GET", "POST"])
 def groups():
@@ -278,6 +317,6 @@ def groups():
     if not allowed:
         return redirect(new_page)
     return render_template("groups.html")
-di
+
 if __name__ == '__main__':
     app.run()

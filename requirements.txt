@@ -4,6 +4,8 @@ flask-wtf
 flask-bootstrap4
 flask-bcrypt
 flask-sqlalchemy
+flask-mail
 python-dotenv
 wtforms
 datetime
+email-validator
