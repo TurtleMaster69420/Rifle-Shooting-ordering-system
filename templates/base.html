@@ -17,7 +17,7 @@
 
         <button onclick="join_group()" class="btn">Join Group</button>
         <button type="button" class="btn cancel" onclick="close_join_group_form()">Close</button>
-        <p id="error"></p>
+        <p id="join_error"></p>
     </div>
 
     <div class="form-popup" id="create_group_form">
@@ -27,7 +27,7 @@
 
         <button onclick="create_group()" class="btn">Create Group</button>
         <button type="button" class="btn cancel" onclick="close_create_group_form()">Close</button>
-        <p id="error"></p>
+        <p id="create_error"></p>
     </div>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -49,7 +49,7 @@
         <a href="#">Group 6</a>
     </div>
 
-  <button class="button join" onclick="open_join_group_form()"><i class="fa fa-arrow-up"></i>Join group</button>
+  <a class="button join" onclick="open_join_group_form()"><i class="fa fa-arrow-up"></i>Join group</a>
 
     <script>
     function open_join_group_form() {
@@ -72,7 +72,7 @@
             }
             else {
                 var myArr = JSON.parse(this.responseText);
-                document.getElementById("error").value = myArr['error'];
+                document.getElementById("join_error").innerHTML = myArr['error'];
             }
         }
       };
@@ -100,7 +100,7 @@
             }
             else {
                 var myArr = JSON.parse(this.responseText);
-                document.getElementById("error").value = myArr['error'];
+                document.getElementById("create_error").innerHTML = myArr['error'];
             }
         }
       };
@@ -109,7 +109,7 @@
     }
     </script>
 
-  <button class="button create" onclick="open_create_group_form()"><i class="fa fa-plus"></i>Create group</button>
+  <a class="button create" onclick="open_create_group_form()"><i class="fa fa-plus"></i>Create group</a>
   <a href="#" style="position: absolute; bottom: 7%" class="logout"><i class="fa fa-sign-out"></i> Logout</a>
 </div>
 

@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from register_form import registerForm
 import datetime
 import os
+import time
 
 
 load_dotenv()
@@ -40,6 +41,11 @@ mail = Mail(app)
 serialiser = URLSafeTimedSerializer(app.config.get("SECRET_KEY"))
 
 
+def get_gid():
+    now = time.time()
+    return int(now*105.2) + 100000564023
+
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(320), unique=True, nullable=False)
@@ -66,17 +72,23 @@ class Order(db.Model):
 
 
 class Group(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    orders = db.relationship("Order", backref="group", lazy=True)
+    id = db.Column(db.Integer, primary_key=True, unique=True, nullable=False)
+    gid = db.Column(db.Integer, default=get_gid, unique=True, nullable=False)
+    name = db.Column(db.Integer, unique=True, nullable=False)
+    organiser = db.Column(db.Integer, unique=False, nullable=False)
+    invite_code = db.Column(db.String, unique=True, nullable=True)
+    # orders = db.relationship("Order", backref="group", lazy=True)
 
 
 class Item(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, unique=True)
     orders = db.relationship("Order", backref="item", lazy=True)
 
 
 # this function checks whether the user is allowed on the current page, taking in the parameter of the page type
 # (e.g. manager, orderer, staff or someone who hasn't logged in (NoneType object)
+
+
 def authenticate(page_type=None):
     """
     :param page_type: either orderer, staff, manager or a NoneType
@@ -130,6 +142,20 @@ def verify_login(email, password):
         return False
 
 
+# create group
+def create_group(name, oid):
+    """
+    :param name: the name of the new group
+    :param oid: the id of the organiser
+    :return: the group id of the new group
+    """
+    new_group = Group(name=name, organiser=oid)
+    db.session.add(new_group)
+    db.session.commit()
+
+    return new_group.gid
+
+
 # "main page" which will always redirect users to the appropriate part of the page
 @app.route('/')
 def index():
@@ -157,6 +183,15 @@ def login():
         else:
             flash("Either the email doesn't exist or the password is incorrect", "text-danger")
     return render_template('login.html', form=form)
+
+
+@app.route('/logout', methods=["GET"])
+def logout():
+    allowed, new_page = authenticate("orderer")
+    if not allowed:
+        return redirect(new_page)
+    del session["user"]
+    return redirect("/")
 
 
 @app.route('/register', methods=["GET", "POST"])
@@ -208,7 +243,6 @@ def confirm():
     db.session.commit()
     session["user"] = user.id
     flash("Your account has been created! Enjoy your experience.", "success")
-    print("flashed")
     return redirect("/")
 
 
@@ -265,7 +299,6 @@ def set_new_password():
         if form.validate_on_submit():
             # overwrite existing password
             user.pwHash = bcrypt.generate_password_hash(request.form["new_password"], 10)
-            print(request.form["new_password"])
             db.session.commit()
             flash("Your password has been successfully updated! Log in with the new password", "text-success")
             return redirect("/login")
@@ -280,7 +313,7 @@ def orderer_home():
     return render_template("orderer_home.html")
 
 
-@app.route("/orderer/about")
+@app.route("/orderer/about", methods=["GET"])
 def orderer_about():
     allowed, new_page = authenticate("orderer")
     if not allowed:
@@ -293,11 +326,15 @@ def orderer_create():
     allowed, new_page = authenticate("orderer")
     if not allowed:
         return redirect(new_page)
-    name = request.form.get("invite")
+    name = request.form.get("name")
     if not name:
-        return redirect(new_page)
-    # TODO: implement functionality to creaete group
-    return redirect(new_page)
+        return '{"error": "No name was supplied"}', 401
+    group = Group.query.filter_by(name=name)
+    if group:
+        return '{"error": "This group already exists"}', 401
+
+    gid = create_group(name, session["id"])
+    return f'{{"url": "/orderer/group/{gid}"}}'
 
 
 @app.route("/orderer/join", methods=["POST"])
@@ -305,10 +342,14 @@ def orderer_join():
     allowed, new_page = authenticate("orderer")
     if not allowed:
         return redirect(new_page)
-    invite_code = request.form.get("invite")
-    if not invite_code or True:
-        return redirect(new_page)
-    return redirect(f"/orderer/group/{invite_code}")
+    invite_code = request.form.get("invite_code")
+    if not invite_code:
+        return '{"error": "No invite code was supplied"}'
+    group = Group.query.filter_by(invite_code=invite_code)
+    if not group:
+        return '{"error": "No group was found to have the provided invite code"}'
+
+    return f'{{"url": "/orderer/group/{group.gid}"}}'
 
 
 @app.route('/orderer/groups', methods=["GET", "POST"])
@@ -317,6 +358,7 @@ def groups():
     if not allowed:
         return redirect(new_page)
     return render_template("groups.html")
+
 
 if __name__ == '__main__':
     app.run()
