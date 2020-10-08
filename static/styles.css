@@ -180,7 +180,7 @@ body {
 #main {
     transition: margin-left 0.35s;
     padding: 20px;
-    margin-left: 250px;
+    margin-left: 20%;
 }
 
 .fa {
@@ -208,12 +208,13 @@ body {
 
 /* The popup form - hidden by default */
 .form-popup {
+    color: white;
     display: none;
-    width: 200px;
+    width: 15.6%;
     border: 3px solid #f1f1f1;
     z-index: 9;
     position: relative;
-    margin-left: 540px;
+    margin-top: 25%;
 }
 
 /* Add styles to the form container */

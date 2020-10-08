@@ -344,20 +344,17 @@ def orderer_join():
     allowed, new_page = authenticate("orderer")
     if not allowed:
         return redirect(new_page)
-    print(request.form)
     invite_code = request.form.get("inviteCode")
-    print("naisdda")
     if not invite_code:
         return make_response('{"error": "No invite code was supplied"}', 401)
     group = Group.query.filter_by(invite_code=invite_code).first()
-    print(group)
     if not group:
         return make_response('{"error": "No group was found to have the provided invite code"}', 401)
 
     return f'{{"url": "/orderer/group/{group.gid}"}}'
 
 
-@app.route('/orderer/group/<gid>', methods=["GET", "POST"])
+@app.route('/orderer/group/<gid>', methods=["GET"])
 def group(gid):
     allowed, new_page = authenticate("orderer")
     if not allowed:
