@@ -1,4 +1,4 @@
-from flask import Flask, session, redirect, render_template, request, flash
+from flask import Flask, session, redirect, render_template, request, flash, make_response
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from flask_bootstrap import Bootstrap
@@ -328,12 +328,12 @@ def orderer_create():
         return redirect(new_page)
     name = request.form.get("name")
     if not name:
-        return '{"error": "No name was supplied"}', 401
-    group = Group.query.filter_by(name=name)
+        return make_response('{"error": "No name was supplied"}', 401)
+    group = Group.query.filter_by(name=name).first()
     if group:
-        return '{"error": "This group already exists"}', 401
+        return make_response('{"error": "This group already exists"}', 401)
 
-    gid = create_group(name, session["id"])
+    gid = create_group(name, session["user"])
     return f'{{"url": "/orderer/group/{gid}"}}'
 
 
@@ -342,22 +342,30 @@ def orderer_join():
     allowed, new_page = authenticate("orderer")
     if not allowed:
         return redirect(new_page)
-    invite_code = request.form.get("invite_code")
+    print(request.form)
+    invite_code = request.form.get("inviteCode")
+    print("naisdda")
     if not invite_code:
-        return '{"error": "No invite code was supplied"}'
-    group = Group.query.filter_by(invite_code=invite_code)
+        return make_response('{"error": "No invite code was supplied"}', 401)
+    group = Group.query.filter_by(invite_code=invite_code).first()
+    print(group)
     if not group:
-        return '{"error": "No group was found to have the provided invite code"}'
+        return make_response('{"error": "No group was found to have the provided invite code"}', 401)
 
     return f'{{"url": "/orderer/group/{group.gid}"}}'
 
 
-@app.route('/orderer/groups', methods=["GET", "POST"])
-def groups():
+@app.route('/orderer/group/<gid>', methods=["GET", "POST"])
+def group(gid):
     allowed, new_page = authenticate("orderer")
     if not allowed:
         return redirect(new_page)
-    return render_template("groups.html")
+    group = Group.query.filter_by(gid=gid)
+
+    if not group:
+        return redirect("/orderer/home")
+
+    return render_template("orderer_group.html")
 
 
 if __name__ == '__main__':
