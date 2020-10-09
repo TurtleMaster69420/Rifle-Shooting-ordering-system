@@ -320,7 +320,7 @@ def orderer_about():
     allowed, new_page = authenticate("orderer")
     if not allowed:
         return redirect(new_page)
-    return render_template("about.html")
+    return render_template("orderer_about.html")
 
 
 @app.route("/orderer/create", methods=["POST"])
@@ -366,6 +366,12 @@ def group(gid):
 
     return render_template("orderer_group.html")
 
+@app.route('/staff/home', methods=["GET"])
+def staff_home():
+    allowed, new_page = authenticate("staff")
+    if not allowed:
+        return redirect(new_page)
+    return render_template("staff_home.html")
 
 if __name__ == '__main__':
     app.run()

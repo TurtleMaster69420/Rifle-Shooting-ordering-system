@@ -258,7 +258,7 @@ def scatter():
 
 @app.route('/about')
 def about():
-    return render_template('about.html')
+    return render_template('orderer_about.html')
 
 @app.errorhandler(404)
 def page_not_found(e):
