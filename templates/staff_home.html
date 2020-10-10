@@ -1,0 +1,43 @@
+<html>
+{% block styles %}
+<link rel="stylesheet"
+      href="{{url_for('.static', filename='styles.css')}}">
+{% endblock %}
+
+<body>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<div id="mySidenav" class="sidenav">
+    <h1 style="color: lightgray">Orders</h1>
+
+    <ol>
+        <li style="color: lightgray">Curry Gang</li>
+        <li style="color: lightgray">D Stack Lads</li>
+        <li style="color: lightgray">Ratatouilles</li>
+    </ol>
+    <a href="/logout" style="position: absolute; bottom: 7%" class="logout"><i class="fa fa-sign-out"></i> Logout</a>
+</div>
+
+<div id="main">
+    <h1>Current Order - Curry Gang</h1>
+    <table style="width:100%">
+        <tr>
+            <th>Item</th>
+            <th>Quantity</th>
+        </tr>
+        <tr>
+            <td>Chicken Burger</td>
+            <td><p>5<input type="checkbox"><p></td>
+        </tr>
+        <tr>
+            <td>Small Chips</td>
+            <td><p>7<input type="checkbox"><p></td>
+        </tr>
+        <tr>
+            <td>Beef Burger</td>
+            <td><p>3<input type="checkbox"><p></td>
+        </tr>
+    </table>
+    <button>Serve Order</button>
+</div>
+</body>
+</html>

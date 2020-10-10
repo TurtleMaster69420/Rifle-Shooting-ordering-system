@@ -187,12 +187,8 @@ def login():
 
 @app.route('/logout', methods=["GET"])
 def logout():
-    allowed, new_page = authenticate("orderer")
-    if not allowed:
-        return redirect(new_page)
-    print(session)
-    del session["user"]
-    print(session)
+    if session.get("user"):
+        del session["user"]
     return redirect("/")
 
 
