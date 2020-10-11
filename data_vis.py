@@ -46,23 +46,6 @@ for i in orders:
     print(food)
 
 
-@app.route('/bar')
-def bar():
-    if request.method == 'GET':
-        plot = figure(plot_height=600, sizing_mode='stretch_width',
-                      title="Orders",
-                      x_axis_label="Food",
-                      y_axis_label="No. of orders",
-                      toolbar_location="above",
-                      x_range=food
-                      )
-        plot.vbar(x=food, top=number, width=0.8)
-        plot.xaxis.major_label_text_font_size= "15pt"
-        plot.xaxis.major_label_text_font_size = "13pt"
-        plot.xaxis.major_label_orientation = 1.0
-        script, div = components(plot)
-    return render_template('bar.html', script=script, div=div)
-
 
 
 ################################################################################
