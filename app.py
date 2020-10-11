@@ -12,10 +12,9 @@ from register_form import registerForm
 import datetime
 import os
 import time
-
+import random
 
 load_dotenv()
-
 
 app = Flask(__name__)
 
@@ -35,60 +34,49 @@ app.config.update(
 
 # instantiate all the flask classes we'll need
 bcrypt = Bcrypt(app)
+base64Chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890+/"
 db = SQLAlchemy(app)
 bootstrap = Bootstrap(app)
 mail = Mail(app)
 serialiser = URLSafeTimedSerializer(app.config.get("SECRET_KEY"))
 
+group_members = db.Table("group_members",
+                         db.Column("user_id", db.Integer, db.ForeignKey("user.user_id")),
+                         db.Column("group_id", db.Integer, db.ForeignKey("group.group_id"))
+                         )
+
 
 def get_gid():
     now = time.time()
-    return int(now*105.2) + 100000564023
+    return int(now * 105.2) + 100000564023
 
 
 class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(320), unique=True, nullable=False)
     name = db.Column(db.String(50), unique=False, nullable=False)
     type = db.Column(db.String(50), unique=False, nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.datetime.now)
     pwHash = db.Column(db.String(60), unique=False, nullable=False)
     confirmed = db.Column(db.Boolean)
-    orders = db.relationship("Order", backref="orderer", lazy=True)
+    groups_owned = db.relationship("Group", backref="organiser")
+    groups_in = db.relationship("Group", secondary=group_members, backref=db.backref("members", lazy="dynamic"))
 
     def __repr__(self):
         return f"<User {self.name}, {self.email}>"
 
 
-class Order(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    group_id = db.Column(db.Integer, db.ForeignKey("group.id"), nullable=False)
-    item_id = db.Column(db.Integer, db.ForeignKey("item.id"), nullable=False)
-    quantity = db.Column(db.Integer, nullable=True)
-
-    def __repr(self):
-        return f"<Order {self.id}>, {self.quantity} of {self.item_id}"
-
-
 class Group(db.Model):
-    id = db.Column(db.Integer, primary_key=True, unique=True, nullable=False)
+    group_id = db.Column(db.Integer, primary_key=True, unique=True, nullable=False)
     gid = db.Column(db.Integer, default=get_gid, unique=True, nullable=False)
     name = db.Column(db.Integer, unique=True, nullable=False)
-    organiser = db.Column(db.Integer, unique=False, nullable=False)
     invite_code = db.Column(db.String, unique=True, nullable=True)
-    # orders = db.relationship("Order", backref="group", lazy=True)
-
-
-class Item(db.Model):
-    id = db.Column(db.Integer, primary_key=True, unique=True)
-    orders = db.relationship("Order", backref="item", lazy=True)
+    timeframe_end = db.Column(db.DateTime, nullable=True, unique=False)
+    organiser_id = db.Column(db.Integer, db.ForeignKey("user.user_id"))
 
 
 # this function checks whether the user is allowed on the current page, taking in the parameter of the page type
 # (e.g. manager, orderer, staff or someone who hasn't logged in (NoneType object)
-
-
 def authenticate(page_type=None):
     """
     :param page_type: either orderer, staff, manager or a NoneType
@@ -118,10 +106,11 @@ def create_user(name, email, password, user_type="orderer"):
 
     if User.query.filter_by(email=email).first():
         return None
-    pwd_hash = bcrypt.generate_password_hash(password, 10) # generates bcrypt password hash (very secure)
-    db.session.add(User(name=name, email=email, pwHash=pwd_hash, type=user_type, confirmed=False))
+    pwd_hash = bcrypt.generate_password_hash(password, 10)  # generates bcrypt password hash (very secure)
+    db.session.add(User(name=name, email=email, pwHash=pwd_hash, type=user_type, confirmed=user_type != "orderer"))
     db.session.commit()
-    return serialiser.dumps(email, salt=app.config.get("SECURITY_PASSWORD_SALT"))
+    if user_type == "orderer":
+        return serialiser.dumps(email, salt=app.config.get("SECURITY_PASSWORD_SALT"))
 
 
 # this function checks whether the provided email and password combination exists in the database
@@ -136,7 +125,7 @@ def verify_login(email, password):
         return False
 
     if bcrypt.check_password_hash(user.pwHash, password):
-        session["user"] = user.id
+        session["user"] = user.user_id
         return True
     else:
         return False
@@ -149,7 +138,7 @@ def create_group(name, oid):
     :param oid: the id of the organiser
     :return: the group id of the new group
     """
-    new_group = Group(name=name, organiser=oid)
+    new_group = Group(name=name, organiser=User.query.get(oid))
     db.session.add(new_group)
     db.session.commit()
 
@@ -215,7 +204,8 @@ def register():
 Here is the link to confirm your account: 127.0.0.1:5000/confirm?token={token}
             """
             mail.send(msg)
-            flash("A confirmation email has been sent to your account! Please check both your inbox and spam folder", "text-success")
+            flash("A confirmation email has been sent to your account! Please check both your inbox and spam folder",
+                  "text-success")
     return render_template('register.html', form=form)
 
 
@@ -239,7 +229,7 @@ def confirm():
     # confirm the user and set their session cookie as their user id (indicating they are now logged in)
     user.confirmed = True
     db.session.commit()
-    session["user"] = user.id
+    session["user"] = user.user_id
     flash("Your account has been created! Enjoy your experience.", "success")
     return redirect("/")
 
@@ -260,12 +250,13 @@ def forgot_password():
 
             # send confirmation email to reset the user's password
             msg = Message("Reset password", sender="dstackordering@gmail.com", recipients=[email])
-            token = serialiser.dumps(email+"resetpwd", salt=app.config.get("SECURITY_PASSWORD_SALT"))
+            token = serialiser.dumps(email + "resetpwd", salt=app.config.get("SECURITY_PASSWORD_SALT"))
             msg.body = f"""
 Here is the link to reset your password: 127.0.0.1:5000/set_new_password?token={token}
             """
             mail.send(msg)
-            flash("We have sent an email to change your password, please check both your inbox and spam folder", "text-success")
+            flash("We have sent an email to change your password, please check both your inbox and spam folder",
+                  "text-success")
     return render_template("forgot_password.html", form=form)
 
 
@@ -298,7 +289,7 @@ def set_new_password():
             # overwrite existing password
             user.pwHash = bcrypt.generate_password_hash(request.form["new_password"], 10)
             db.session.commit()
-            flash("Your password has been successfully updated! Log in with the new password", "text-success")
+            flash("Your password has been successfully reset! Log in with the new password", "text-success")
             return redirect("/login")
     return render_template("set_new_password.html", form=form)
 
@@ -308,7 +299,9 @@ def orderer_home():
     allowed, new_page = authenticate("orderer")
     if not allowed:
         return redirect(new_page)
-    return render_template("orderer_home.html")
+
+    user = User.query.get(session["user"])
+    return render_template("orderer_home.html", groups_in=user.groups_in, groups_owned=user.groups_owned)
 
 
 @app.route("/orderer/about", methods=["GET"])
@@ -316,7 +309,9 @@ def orderer_about():
     allowed, new_page = authenticate("orderer")
     if not allowed:
         return redirect(new_page)
-    return render_template("orderer_about.html")
+
+    user = User.query.get(session["user"])
+    return render_template("orderer_about.html", groups_in=user.groups_in, groups_owned=user.groups_owned)
 
 
 @app.route("/orderer/create", methods=["POST"])
@@ -324,30 +319,118 @@ def orderer_create():
     allowed, new_page = authenticate("orderer")
     if not allowed:
         return redirect(new_page)
+
+    # if no name is provided
     name = request.form.get("name")
     if not name:
         return make_response('{"error": "No name was supplied"}', 401)
-    group = Group.query.filter_by(name=name).first()
-    if group:
+
+    # if the group name already exists
+    group_wanted = Group.query.filter_by(name=name).first()
+    if group_wanted:
         return make_response('{"error": "This group already exists"}', 401)
 
     gid = create_group(name, session["user"])
+    flash("Welcome to the new group you have created!", "success")
     return f'{{"url": "/orderer/group/{gid}"}}'
 
 
 @app.route("/orderer/join", methods=["POST"])
 def orderer_join():
+    print(request.form.get("invite_code"))
     allowed, new_page = authenticate("orderer")
     if not allowed:
         return redirect(new_page)
-    invite_code = request.form.get("inviteCode")
+
+    # if no invite code is provided
+    invite_code = request.form.get("invite_code")
     if not invite_code:
         return make_response('{"error": "No invite code was supplied"}', 401)
-    group = Group.query.filter_by(invite_code=invite_code).first()
-    if not group:
+
+    group_wanted = Group.query.filter_by(invite_code=invite_code).first()
+
+    # if no group exists with the specified invite code
+    if not group_wanted:
         return make_response('{"error": "No group was found to have the provided invite code"}', 401)
 
-    return f'{{"url": "/orderer/group/{group.gid}"}}'
+    # if the user is the organiser of the group
+    if group_wanted.organiser_id == session["user"]:
+        return make_response('{"error": "You are already the organiser of this group"}', 401)
+
+    # if the user is a member of the group
+    if group_wanted.members.filter_by(user_id=session["user"]).first():
+        return make_response('{"error": "You are already a member of this group"}', 401)
+
+    flash("Welcome to the new group!", "success")
+    group_wanted.members.append(User.query.get(session["user"]))
+    db.session.commit()
+    return f'{{"url": "/orderer/group/{group_wanted.gid}"}}'
+
+
+@app.route("/orderer/group/<gid>/invite", methods=["GET"])
+def group_invite(gid):
+    allowed, new_page = authenticate("orderer")
+    if not allowed:
+        print("ujfisdjjdsf")
+        return redirect(new_page)
+
+    group_wanted = Group.query.filter_by(gid=gid).first()
+
+    # if the gid does not exist
+    if not group_wanted:
+        print("yeehoo")
+        return redirect("/orderer/home")
+
+    # if the user is not the organiser of the group
+    if group_wanted.organiser_id != session["user"]:
+        print("yoeoey")
+        return redirect("/orderer/home")
+
+    # assign the group invite code as a 24 character, random readable string and redirect organiser back to their group
+    group_wanted.invite_code = "".join([random.choice(base64Chars) for _ in range(24)])
+    db.session.commit()
+
+    return redirect(f"/orderer/group/{gid}")
+
+
+@app.route('/orderer/group/<gid>/setTimeFrame', methods=["GET"])
+def set_time_frame(gid):
+    allowed, new_page = authenticate("orderer")
+    if not allowed:
+        return redirect(new_page)
+
+    # check if group exists
+    group_wanted = Group.query.filter_by(gid=gid)
+
+    if not group_wanted:
+        return redirect("/orderer/home")
+
+    # check if the user is the organiser of the group
+    if group_wanted.organiser_id != session["user"]:
+        return redirect("/orderer/home")
+
+    end_date = request.args.get("date")
+
+    # check if date is provided
+    if not end_date:
+        flash("No date was provided", "danger")
+        return redirect(f"/orderer/group/{gid}")
+
+    end_time = request.args.get("time")
+
+    # check if time was provided
+    if not end_time:
+        flash("No time was provided", "danger")
+        return redirect(f"/orderer/group/{gid}")
+
+    # convert to datetime object and set timeframe in database
+    timeframe_end = datetime.datetime.strptime(f"{end_date} - {end_time}", "%Y-%m-%d - %H:%M")
+    group_wanted.timeframe_end = timeframe_end
+    db.session.commit()
+
+    flash("The timeframe has been set!", "success")
+
+    return redirect(f"/orderer/group/{gid}")
 
 
 @app.route('/orderer/group/<gid>', methods=["GET"])
@@ -355,12 +438,28 @@ def group(gid):
     allowed, new_page = authenticate("orderer")
     if not allowed:
         return redirect(new_page)
-    group = Group.query.filter_by(gid=gid)
 
-    if not group:
+    group_wanted = Group.query.filter_by(gid=gid).first()
+
+    # if the provided gid does not exist
+    if not group_wanted:
         return redirect("/orderer/home")
 
-    return render_template("orderer_group.html")
+    user = User.query.get(session["user"])
+
+    # if the user is the organiser, display the organiser page
+    if group_wanted.organiser_id == session["user"]:
+        return render_template("organiser_group.html", groups_in=user.groups_in,
+                               groups_owned=user.groups_owned, group=group_wanted)
+
+    # if the user is a normal member, display the default orderer page
+    if group_wanted.members.filter_by(user_id=session["user"]).first():
+        return render_template("orderer_group.html", groups_in=user.groups_in,
+                               groups_owned=user.groups_owned, group=group_wanted)
+
+    # otherwise, redirect the user back the their home page (they are unauthenticated)
+    return redirect("/orderer/home")
+
 
 @app.route('/staff/home', methods=["GET"])
 def staff_home():
@@ -368,6 +467,7 @@ def staff_home():
     if not allowed:
         return redirect(new_page)
     return render_template("staff_home.html")
+
 
 if __name__ == '__main__':
     app.run()
