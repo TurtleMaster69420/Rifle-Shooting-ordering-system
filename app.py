@@ -452,7 +452,11 @@ def set_time_frame(gid):
     # convert to datetime object and set timeframe in database
     timeframe_end = datetime.datetime.strptime(f"{end_date} - {end_time}", "%Y-%m-%d - %H:%M")
     group_wanted.timeframe_end = timeframe_end
+    print(timeframe_end)
     db.session.commit()
+    print(group_wanted.timeframe_end)
+    print("WHAT", Group.query.all()[0].timeframe_end)
+
 
     flash("The timeframe has been set!", "success")
 
@@ -484,6 +488,8 @@ def group(gid):
             order = o
             break
 
+    print(group_wanted.timeframe_end)
+
     # if the user is the organiser, display the organiser page
     if group_wanted.organiser_id == session["user"]:
         return render_template("organiser_group.html", groups_in=user.groups_in,
@@ -492,7 +498,7 @@ def group(gid):
     # if the user is a normal member, display the default orderer page
     if group_wanted.members.filter_by(user_id=session["user"]).first():
         return render_template("orderer_group.html", groups_in=user.groups_in,
-                               groups_owned=user.groups_owned, group=group_wanted, order=order)
+                               groups_owned=user.groups_owned, group=group_wanted, order=order, user_db=User)
 
     # otherwise, redirect the user back the their home page (they are unauthenticated)
     return redirect("/orderer/home")
@@ -534,14 +540,12 @@ def manager_menu():
             {'name': 'fries', 'image': '/static/menu/fries.png', 'price': 5, 'description': 'fries'}
             ]
 
-    filter = request.args.get('filter', 'type')
+    filter = request.args.get('filter', 'name')
     reverse = request.args.get('reverse', 'false')
 
     menu = sorted(menu, key=lambda i: i[filter])
     if reverse == 'false':
         menu.reverse()
-
-    print(reverse)
 
     return render_template("manager_menu.html", menu=menu, reverse=(reverse == 'true'))
 
