@@ -541,13 +541,20 @@ def manager_menu():
             ]
 
     filter = request.args.get('filter', 'name')
-    reverse = request.args.get('reverse', 'false')
+    reverse = (request.args.get('reverse', 'false') == 'true')
+    edit = (request.args.get('edit', 'false') == 'true')
+
+    print(1)
+    if request.method == "POST":
+        form = request.form
+        print(form)
+        print('hi')
 
     menu = sorted(menu, key=lambda i: i[filter])
-    if reverse == 'false':
+    if reverse:
         menu.reverse()
 
-    return render_template("manager_menu.html", menu=menu, reverse=(reverse == 'true'))
+    return render_template("manager_menu.html", menu=menu, reverse=reverse, edit=edit)
 
 
 @app.route('/manager/staff')
@@ -555,7 +562,12 @@ def manager_staff():
     allowed, new_page = authenticate("manager")
     if not allowed:
         return redirect(new_page)
-    return render_template("manager_staff.html")
+    staff = [{'name':'Kalaish', 'email': 'stanley.kal42@gmail.com', 'password': 'password'},
+             {'name':'Kalaish', 'email': 'stanley.kal42@gmail.com', 'password': 'password'},
+             {'name':'Kalaish', 'email': 'stanley.kal42@gmail.com', 'password': 'password'},
+             {'name':'Kalaish', 'email': 'stanley.kal42@gmail.com', 'password': 'password'},
+    ]
+    return render_template("manager_staff.html", staff=staff)
 
 
 if __name__ == '__main__':
