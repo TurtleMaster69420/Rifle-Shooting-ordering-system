@@ -61,6 +61,7 @@ class User(db.Model):
     confirmed = db.Column(db.Boolean)
     groups_owned = db.relationship("Group", backref="organiser")
     groups_in = db.relationship("Group", secondary=group_members, backref=db.backref("members", lazy="dynamic"))
+    orders = db.relationship("Order", backref="orderer")
 
     def __repr__(self):
         return f"<User {self.name}, {self.email}>"
@@ -73,6 +74,31 @@ class Group(db.Model):
     invite_code = db.Column(db.String, unique=True, nullable=True)
     timeframe_end = db.Column(db.DateTime, nullable=True, unique=False)
     organiser_id = db.Column(db.Integer, db.ForeignKey("user.user_id"))
+    orders = db.relationship("Order", backref="group_in", lazy=True)
+
+
+class Order(db.Model):
+    order_id = db.Column(db.Integer, primary_key=True, unique=True, nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey("group.group_id"))
+    orderer_id = db.Column(db.Integer, db.ForeignKey("user.user_id"))
+    item_info = db.relationship("Info", backref="order")
+    total_cost = db.Column(db.Float, nullable=False)
+
+
+class Info(db.Model):
+    info_id = db.Column(db.Integer, primary_key=True, unique=True, nullable=False)
+    order_id = db.Column(db.Integer, db.ForeignKey("order.order_id"))
+    item = db.relationship("Item", backref="info")
+    quantity = db.Column(db.Integer, unique=False, nullable=False)
+
+
+class Item(db.Model):
+    item_id = db.Column(db.Integer, primary_key=True, unique=True, nullable=False)
+    name = db.Column(db.String(64), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    image = db.Column(db.String(64), nullable=False)
+    description = db.Column(db.String(128), nullable=False)
+    info_id = db.Column(db.Integer, db.ForeignKey("info.info_id"))
 
 
 # this function checks whether the user is allowed on the current page, taking in the parameter of the page type
@@ -446,21 +472,27 @@ def group(gid):
         return redirect("/orderer/home")
 
     # remove time frame if it has finished
-    if group_wanted.timeframe_end < datetime.datetime.today():
+    if group_wanted.timeframe_end and group_wanted.timeframe_end < datetime.datetime.today():
         group_wanted.timeframe_end = None
         db.session.commit()
 
     user = User.query.get(session["user"])
 
+    order = None
+    for o in group_wanted.orders:
+        if o.orderer_id == session["user"]:
+            order = o
+            break
+
     # if the user is the organiser, display the organiser page
     if group_wanted.organiser_id == session["user"]:
         return render_template("organiser_group.html", groups_in=user.groups_in,
-                               groups_owned=user.groups_owned, group=group_wanted)
+                               groups_owned=user.groups_owned, group=group_wanted, order=order)
 
     # if the user is a normal member, display the default orderer page
     if group_wanted.members.filter_by(user_id=session["user"]).first():
         return render_template("orderer_group.html", groups_in=user.groups_in,
-                               groups_owned=user.groups_owned, group=group_wanted)
+                               groups_owned=user.groups_owned, group=group_wanted, order=order)
 
     # otherwise, redirect the user back the their home page (they are unauthenticated)
     return redirect("/orderer/home")
@@ -487,20 +519,25 @@ def manager_menu():
     allowed, new_page = authenticate("manager")
     if not allowed:
         return redirect(new_page)
-    menu = [{'name':'chicken', 'image':'/static/menu/chicken.png', 'price':15, 'description':'hi', 'type': 'burger'},
-            {'name':'beef', 'image':'/static/menu/beef.png', 'price':15, 'description':'hill', 'type': 'burger'},
-            {'name':'fish', 'image':'/static/menu/fish.png', 'price':20, 'description':'his', 'type': 'burger'},
-            {'name':'vegetable', 'image':'/static/menu/veggie.png', 'price':12, 'description':'hit', 'type': 'burger'},
-            {'name': 'water', 'image': '/static/menu/water.png', 'price': 2.50, 'description': 'hi', 'type': 'drink'},
-            {'name': 'coke', 'image': '/static/menu/coke.png', 'price': 3, 'description': 'hill', 'type': 'drink'},
-            {'name': 'sprite', 'image': '/static/menu/sprite.png', 'price': 3, 'description': 'his', 'type': 'drink'},
-            {'name': 'fanta', 'image': '/static/menu/fanta.png', 'price': 4, 'description': 'hit', 'type': 'drink'},
-            {'name': 'fries', 'image': '/static/menu/fries.png', 'price': 5, 'description': 'fries', 'type': 'side'}
+
+    menu_raw = Item.query.all()
+    for item in menu_raw:
+        menu_raw.append({"name": item.name, "image": item.image, "price": item.price, "description": item.description})
+    menu = [{'name':'chicken', 'image':'/static/menu/chicken.png', 'price':15, 'description': 'hi'},
+            {'name':'beef', 'image':'/static/menu/beef.png', 'price':15, 'description':'hill'},
+            {'name':'fish', 'image':'/static/menu/fish.png', 'price':20, 'description':'his'},
+            {'name':'vegetable', 'image':'/static/menu/veggie.png', 'price':12, 'description': 'hit'},
+            {'name': 'water', 'image': '/static/menu/water.png', 'price': 2.50, 'description': 'hi'},
+            {'name': 'coke', 'image': '/static/menu/coke.png', 'price': 3, 'description': 'hill'},
+            {'name': 'sprite', 'image': '/static/menu/sprite.png', 'price': 3, 'description': 'his'},
+            {'name': 'fanta', 'image': '/static/menu/fanta.png', 'price': 4, 'description': 'hit'},
+            {'name': 'fries', 'image': '/static/menu/fries.png', 'price': 5, 'description': 'fries'}
             ]
+
     filter = request.args.get('filter', 'type')
     reverse = request.args.get('reverse', 'false')
 
-    menu = sorted(menu, key = lambda i: i[filter])
+    menu = sorted(menu, key=lambda i: i[filter])
     if reverse == 'false':
         menu.reverse()
 

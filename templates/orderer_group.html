@@ -16,10 +16,23 @@
 </head>
 
     <h2>{{ group.name }} (Member)</h2>
-    <p>Order Summary:
-        <br> • Chicken (x11, $11 each)
-        <br> • Wholemeal bread(x100, $8.45 each)
-        <br> • Paper (x1, $1 each)
-        <br> You owe nothing
-     </p>
+    {% if group.timeframe_end %}
+    {% if order %}
+        <p>
+            Order summary:
+            <ul>
+                {% for info in order.info %}
+                    <li>{{ info.quantity }} {{ info.item[0].name }} ({{ info.item[0].price }} each, total of {{ info.item[0].price * info.quantity }})</li>
+                {% endfor %}
+            </ul>
+            Total amount: {{ order.total_cost }}
+        </p>
+    {% else %}
+        <p>You have not made an order yet. Make one now!</p>
+    {% endif %}
+    <!-- add menu here kalaish (provide item information and box where they can input quantity -->
+    <!-- button here will send a request to "/orderer/ABC" (for now) with the selected items and quantity provided -->
+    {% else %}
+        <p>You currently cannot submit any orders as no timeframe has been allocated.</p>
+    {% endif %}
 {% endblock %}
