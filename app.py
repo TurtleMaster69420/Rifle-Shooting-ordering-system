@@ -400,7 +400,7 @@ def set_time_frame(gid):
         return redirect(new_page)
 
     # check if group exists
-    group_wanted = Group.query.filter_by(gid=gid)
+    group_wanted = Group.query.filter_by(gid=gid).first()
 
     if not group_wanted:
         return redirect("/orderer/home")
@@ -468,12 +468,14 @@ def staff_home():
         return redirect(new_page)
     return render_template("staff_home.html")
 
+
 @app.route('/manager/home')
 def manager_home():
     allowed, new_page = authenticate("manager")
     if not allowed:
         return redirect(new_page)
     return render_template("manager_home.html")
+
 
 @app.route('/manager/menu', methods=["GET", "POST"])
 def manager_menu():
