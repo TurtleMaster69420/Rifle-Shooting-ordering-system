@@ -44,7 +44,7 @@
         <br>
         <div style="display: inline-block;">
             {% for item in menu %}
-                <div class="cell"><img class="menu-item-image" src={{item["image"]}}>
+                <div class="cell"> <img class="menu-item-image" src={{item["image"]}}>
                     <div class="menu-item-text" style="text-align: center">{{item["name"]}}<br>${{item["price"]}}</div>
                 </div>
             {% endfor %}

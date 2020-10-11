@@ -318,13 +318,15 @@ body {
 
 .menu-item-image {
     margin-left: 30px;
+    margin-top: 10%;
     width: 60%;
     transition-duration: 0.3s;
 }
 
 .cell:hover .menu-item-image {
+    margin-top: 0;
     margin-left: 24px;
-    width: 70%;
+    width: 65%;
     transition-duration: 0.3s;
 }
 
