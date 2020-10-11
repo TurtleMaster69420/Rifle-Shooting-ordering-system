@@ -491,15 +491,15 @@ def manager_menu():
             {'name': 'fries', 'image': '/static/menu/fries.png', 'price': 5, 'description': 'fries', 'type': 'side'}
             ]
     filter = request.args.get('filter', 'type')
-    reverse = request.args.get('reverse', 'false')
+    reverse = (request.args.get('reverse', 'false') == 'true')
+    edit = (request.args.get('edit', 'false') == 'true')
 
     menu = sorted(menu, key = lambda i: i[filter])
-    if reverse == 'false':
+    if not reverse:
         menu.reverse()
 
-    print(reverse)
 
-    return render_template("manager_menu.html", menu=menu, reverse=(reverse == 'true'))
+    return render_template("manager_menu.html", menu=menu, reverse=reverse, edit=edit)
 
 @app.route('/manager/staff')
 def manager_staff():

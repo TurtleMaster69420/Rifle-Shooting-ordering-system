@@ -38,13 +38,23 @@
             <a style="display: block" onclick="toggle_ascending()" href="javascript:setParam('reverse', 'true');" id="descending_button" class="descending_button"><i class="fa fa-arrow-down"></i>Descending</a>
         </div>
         {% endif %}
-        <div style="display: inline-block">
-            <a style="border-radius: 4px;" class="dropbtn" onclick="open_create_group_form()"><i class="fa fa-plus"></i>Create group</a>
-        </div>
+        {% if not edit %}
+            <div style="display: inline-block">
+                <a class="edit-menu-button" onclick="open_create_group_form()" href="javascript:setParam('edit', 'true');"><i class="fa fa-pencil"></i>Edit Menu</a>
+            </div>
+        {% else %}
+            <div style="display: inline-block">
+                <a class="cancel-changes-button" onclick="open_create_group_form()" href="javascript:setParam('edit', 'false');"><i class="fa fa-times"></i>Cancel Changes</a>
+                <a class="save-changes-button" onclick="open_create_group_form()" href="javascript:setParam('edit', 'false');"><i class="fa fa-check"></i>Save Changes</a>
+            </div>
+        {% endif %}
         <br>
         <div style="display: inline-block;">
             {% for item in menu %}
                 <div class="cell"><img class="menu-item-image" src={{item["image"]}}>
+                    {% if edit %}
+                        <button></button>
+                    {% endif %}
                     <div class="menu-item-text" style="text-align: center">{{item["name"]}}<br>${{item["price"]}}</div>
                 </div>
             {% endfor %}
