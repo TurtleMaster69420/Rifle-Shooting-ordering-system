@@ -25,19 +25,20 @@
             Your group has no invite code. Create one now!
         {% endif %}
     </p>
-    {% 
-    <p>
-        No time frame for accepting orders has been allocated. Set a due date and time now!
-    </p>
-    <input id="end_date" type="date"> <input id="end_time" type="time"><br>
-    <a class="button setTimeFrame" onclick="setTimeFrame()"><i class="fa fa-calendar"></i>Set end of time frame </a>
-
+    {% if not group.timeframe_end %}
+        <p>
+            No time frame for accepting orders has been allocated. Set a due date and time now!
+        </p>
+        <input id="end_date" type="date"> <input id="end_time" type="time"><br>
+        <a class="button setTimeFrame" onclick="setTimeFrame()"><i class="fa fa-calendar"></i>Set end of time frame </a>
+    {% else %}
     <p>Order Summary:
         <br> • Chicken (x11, $11 each)
         <br> • Wholemeal bread(x100, $8.45 each)
         <br> • Paper (x1, $1 each)
         <br> You owe nothing
      </p>
+    {% endif %}
     <script>
         document.getElementById("invite").href = window.location.href+"/"+"invite";
         function setTimeFrame() {

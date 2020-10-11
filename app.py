@@ -400,7 +400,7 @@ def set_time_frame(gid):
         return redirect(new_page)
 
     # check if group exists
-    group_wanted = Group.query.filter_by(gid=gid)
+    group_wanted = Group.query.filter_by(gid=gid).first()
 
     if not group_wanted:
         return redirect("/orderer/home")
