@@ -46,32 +46,11 @@ for i in orders:
     print(food)
 
 
-@app.route('/bar')
-def bar():
-    if request.method == 'GET':
-        plot = figure(plot_height=600, sizing_mode='stretch_width',
-                      title="Orders",
-                      x_axis_label="Food",
-                      y_axis_label="No. of orders",
-                      toolbar_location="above",
-                      x_range=food
-                      )
-        plot.vbar(x=food, top=number, width=0.8)
-        plot.xaxis.major_label_text_font_size= "15pt"
-        plot.xaxis.major_label_text_font_size = "13pt"
-        plot.xaxis.major_label_orientation = 1.0
-        script, div = components(plot)
-    return render_template('bar.html', script=script, div=div)
 
-
-@app.route('/area')
-def area():
-
-    return render_template('area.html')
 
 ################################################################################
 ################################################################################
-################################################################################
+################################################################################USE STUFF FROM UNDERNEATH THIS!!!
 orders = {'Chicken Burgers': randint(10, 20),
           'Beef Burgers': randint(10, 15),
           'Fish Burgers':randint(1, 5),
@@ -190,12 +169,6 @@ print(week4)
 
 week1date = date_list[0]
 
-@app.route('/district')
-def district():
-
-    return render_template('districts.html')
-
-
 week1_sum = sum(week1)
 print(week1_sum)
 
@@ -255,14 +228,6 @@ def scatter():
     script, div = components(tabs)
     return render_template('scatter.html', script=script, div=div)
 
-
-@app.route('/about')
-def about():
-    return render_template('orderer_about.html')
-
-@app.errorhandler(404)
-def page_not_found(e):
-    return render_template('404.html')
 
 if __name__ == '__main__':
     app.run()
