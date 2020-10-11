@@ -488,11 +488,19 @@ def manager_menu():
             {'name': 'coke', 'image': '/static/menu/coke.png', 'price': 3, 'description': 'hill', 'type': 'drink'},
             {'name': 'sprite', 'image': '/static/menu/sprite.png', 'price': 3, 'description': 'his', 'type': 'drink'},
             {'name': 'fanta', 'image': '/static/menu/fanta.png', 'price': 4, 'description': 'hit', 'type': 'drink'},
-            {'name': 'fries', 'image': '/static/menu/fries.png', 'price': 5, 'description': 'fries', 'type': 'side'}
+            {'name': 'small fries', 'image': '/static/menu/fries.png', 'price': 3, 'description': 'fries', 'type': 'side'},
+            {'name': 'medium fries', 'image': '/static/menu/fries.png', 'price': 5, 'description': 'fries', 'type': 'side'},
+            {'name': 'large fries', 'image': '/static/menu/fries.png', 'price': 6, 'description': 'fries', 'type': 'side'}
             ]
     filter = request.args.get('filter', 'type')
     reverse = (request.args.get('reverse', 'false') == 'true')
     edit = (request.args.get('edit', 'false') == 'true')
+
+    print(1)
+    if request.method == "POST":
+        form = request.form
+        print(form)
+        print('hi')
 
     menu = sorted(menu, key = lambda i: i[filter])
     if not reverse:
