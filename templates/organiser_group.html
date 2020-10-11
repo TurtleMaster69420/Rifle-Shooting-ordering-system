@@ -32,12 +32,40 @@
         <input id="end_date" type="date"> <input id="end_time" type="time"><br>
         <a class="button setTimeFrame" onclick="setTimeFrame()"><i class="fa fa-calendar"></i>Set end of time frame </a>
     {% else %}
-    <p>Order Summary:
-        <br> • Chicken (x11, $11 each)
-        <br> • Wholemeal bread(x100, $8.45 each)
-        <br> • Paper (x1, $1 each)
-        <br> You owe nothing
-     </p>
+        {% if order %}
+        <p>
+            Order summary:
+            <ul>
+                {% for info in order.info %}
+                    <li>{{ info.quantity }} {{ info.item[0].name }} ({{ info.item[0].price }} each, total of {{ info.item[0].price * info.quantity }})</li>
+                {% endfor %}
+            </ul>
+            Total amount: {{ order.total_cost }}
+        </p>
+        {% else %}
+            <p>You have not made an order yet. Make one now!</p>
+        {% endif %}
+        <!-- add menu here kalaish (provide item information and box where they can input quantity -->
+        <!-- total amount will show at the bottom (javascript will add all prices * quantities) -->
+        <!-- button here will send a request to "/orderer/ABC" (for now) with the selected items and quantity provided -->
+    {% endif %}
+    {% if not group.orders %}
+    <p>No orders have been made</p>
+    {% else %}
+        {% for order in group.orders %}
+            <h2>Order by {{ user_db.query.get(order.orderer_id) }}</h2>
+            <p>
+                <p>
+                    Order summary:
+                    <ul>
+                        {% for info in order.info %}
+                            <li>{{ info.quantity }} {{ info.item[0].name }} ({{ info.item[0].price }} each, total of {{ info.item[0].price * info.quantity }})</li>
+                        {% endfor %}
+                    </ul>
+                    Total amount: {{ order.total_cost }}
+                </p>
+            </p>
+        {% endfor %}
     {% endif %}
     <script>
         document.getElementById("invite").href = window.location.href+"/"+"invite";
