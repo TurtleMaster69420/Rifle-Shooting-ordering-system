@@ -516,7 +516,12 @@ def manager_staff():
     allowed, new_page = authenticate("manager")
     if not allowed:
         return redirect(new_page)
-    return render_template("manager_staff.html")
+    staff = [{'name':'Kalaish', 'email': 'stanley.kal42@gmail.com', 'password': 'password'},
+             {'name':'Kalaish', 'email': 'stanley.kal42@gmail.com', 'password': 'password'},
+             {'name':'Kalaish', 'email': 'stanley.kal42@gmail.com', 'password': 'password'},
+             {'name':'Kalaish', 'email': 'stanley.kal42@gmail.com', 'password': 'password'},
+    ]
+    return render_template("manager_staff.html", staff=staff)
 
 if __name__ == '__main__':
     app.run()
