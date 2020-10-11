@@ -541,8 +541,6 @@ def manager_menu():
             ]
 
     filter = request.args.get('filter', 'name')
-    reverse = request.args.get('reverse', 'false')
-    filter = request.args.get('filter', 'type')
     reverse = (request.args.get('reverse', 'false') == 'true')
     edit = (request.args.get('edit', 'false') == 'true')
 
@@ -553,10 +551,10 @@ def manager_menu():
         print('hi')
 
     menu = sorted(menu, key=lambda i: i[filter])
-    if reverse == 'false':
+    if reverse:
         menu.reverse()
 
-    return render_template("manager_menu.html", menu=menu, reverse=(reverse == 'true'))
+    return render_template("manager_menu.html", menu=menu, reverse=reverse, edit=edit)
 
 
 @app.route('/manager/staff')
