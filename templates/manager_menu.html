@@ -1,0 +1,98 @@
+{% extends "manager_base.html" %}
+<head>
+<style>
+    .grid-container {
+      display: grid;
+      grid-template-columns: auto auto auto;
+      background-color: #2196F3;
+      padding: 10px;
+    }
+    .grid-item {
+      background-color: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      font-size: 30px;
+      text-align: center;
+    }
+</style>
+</head>
+
+{% block content %}
+    <div id="main">
+        <div class="dropdown" style="display: inline-block">
+            <button class="dropbtn">Sort By</button>
+            <div class="dropdown-content">
+                <a href="javascript:setParam('filter', 'type');">Type</a>
+                <a href="javascript:setParam('filter', 'name');">Alphabetical</a>
+                <a href="javascript:setParam('filter', 'price');">Price</a>
+            </div>
+        </div>
+        {% if reverse %}
+        <div style="display: inline-block">
+            <a style="display: block" onclick="toggle_descending()" href="javascript:setParam('reverse', 'false');" id="ascending_button" class="ascending_button"><i class="fa fa-arrow-up"></i>Ascending</a>
+            <a style="display: none" onclick="toggle_ascending()" href="javascript:setParam('reverse', 'true');" id="descending_button" class="descending_button"><i class="fa fa-arrow-down"></i>Descending</a>
+        </div>
+        {% else %}
+        <div style="display: inline-block">
+            <a style="display: none" onclick="toggle_descending()" href="javascript:setParam('reverse', 'false');" id="ascending_button" class="ascending_button"><i class="fa fa-arrow-up"></i>Ascending</a>
+            <a style="display: block" onclick="toggle_ascending()" href="javascript:setParam('reverse', 'true');" id="descending_button" class="descending_button"><i class="fa fa-arrow-down"></i>Descending</a>
+        </div>
+        {% endif %}
+        <div style="display: inline-block">
+            <a style="border-radius: 4px;" class="dropbtn" onclick="open_create_group_form()"><i class="fa fa-plus"></i>Create group</a>
+        </div>
+        <br>
+        <div style="display: inline-block;">
+            {% for item in menu %}
+                <div class="cell"><img class="menu-item-image" src={{item["image"]}}>
+                    <div class="menu-item-text" style="text-align: center">{{item["name"]}}<br>${{item["price"]}}</div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <script>
+        function toggle_descending() {
+            document.getElementById("ascending_button").style.display = "none";
+            document.getElementById("descending_button").style.display = "block";
+        }
+
+        function toggle_ascending() {
+            document.getElementById("descending_button").style.display = "none";
+            document.getElementById("ascending_button").style.display = "block";
+        }
+
+        function setParam(name, value) {
+            var l = window.location;
+
+            /* build params */
+            var params = {};
+            var x = /(?:\??)([^=&?]+)=?([^&?]*)/g;
+            var s = l.search;
+            for(var r = x.exec(s); r; r = x.exec(s))
+            {
+                r[1] = decodeURIComponent(r[1]);
+                if (!r[2]) r[2] = '%%';
+                params[r[1]] = r[2];
+            }
+
+            /* set param */
+            params[name] = encodeURIComponent(value);
+
+            /* build search */
+            var search = [];
+            for(var i in params)
+            {
+                var p = encodeURIComponent(i);
+                var v = params[i];
+                if (v != '%%') p += '=' + v;
+                search.push(p);
+            }
+            search = search.join('&');
+
+            /* execute search */
+            l.search = search;
+        }
+    </script>
+{% endblock %}
+
+

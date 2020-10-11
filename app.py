@@ -14,6 +14,7 @@ import os
 import time
 
 
+
 load_dotenv()
 
 
@@ -368,6 +369,46 @@ def staff_home():
     if not allowed:
         return redirect(new_page)
     return render_template("staff_home.html")
+
+@app.route('/manager/home')
+def manager_home():
+    allowed, new_page = authenticate("manager")
+    if not allowed:
+        return redirect(new_page)
+    return render_template("manager_home.html")
+
+@app.route('/manager/menu', methods=["GET", "POST"])
+def manager_menu():
+    allowed, new_page = authenticate("manager")
+    if not allowed:
+        return redirect(new_page)
+    menu = [{'name':'chicken', 'image':'/static/menu/chicken.png', 'price':15, 'description':'hi', 'type': 'burger'},
+            {'name':'beef', 'image':'/static/menu/beef.png', 'price':15, 'description':'hill', 'type': 'burger'},
+            {'name':'fish', 'image':'/static/menu/fish.png', 'price':20, 'description':'his', 'type': 'burger'},
+            {'name':'vegetable', 'image':'/static/menu/veggie.png', 'price':12, 'description':'hit', 'type': 'burger'},
+            {'name': 'water', 'image': '/static/menu/water.png', 'price': 2.50, 'description': 'hi', 'type': 'drink'},
+            {'name': 'coke', 'image': '/static/menu/coke.png', 'price': 3, 'description': 'hill', 'type': 'drink'},
+            {'name': 'sprite', 'image': '/static/menu/sprite.png', 'price': 3, 'description': 'his', 'type': 'drink'},
+            {'name': 'fanta', 'image': '/static/menu/fanta.png', 'price': 4, 'description': 'hit', 'type': 'drink'},
+            {'name': 'fries', 'image': '/static/menu/fries.png', 'price': 5, 'description': 'fries', 'type': 'side'}
+            ]
+    filter = request.args.get('filter', 'type')
+    reverse = request.args.get('reverse', 'false')
+
+    menu = sorted(menu, key = lambda i: i[filter])
+    if reverse == 'false':
+        menu.reverse()
+
+    print(reverse)
+
+    return render_template("manager_menu.html", menu=menu, reverse=(reverse == 'true'))
+
+@app.route('/manager/staff')
+def manager_staff():
+    allowed, new_page = authenticate("manager")
+    if not allowed:
+        return redirect(new_page)
+    return render_template("manager_staff.html")
 
 if __name__ == '__main__':
     app.run()
