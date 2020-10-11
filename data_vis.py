@@ -50,7 +50,7 @@ for i in orders:
 
 ################################################################################
 ################################################################################
-################################################################################USE STUFF FROM UNDERNEATH THIS!!!
+################################################################################
 orders = {'Chicken Burgers': randint(10, 20),
           'Beef Burgers': randint(10, 15),
           'Fish Burgers':randint(1, 5),
@@ -218,7 +218,7 @@ def scatter():
     plot.legend.orientation = "horizontal"
     tab2 = Panel(child = plot, title = "Weekly Orders")
     plot1 = figure(plot_width = 800, title="Total Orders", x_axis_label="Date",
-                      y_axis_label="Total Food Orders", plot_height = 600, x_range=date_list, tools="hover")
+                      y_axis_label="Total Food Orders", plot_height = 600, x_range=date_list)
     plot1.line(x = date_list, y = total_sums, line_width = 4)
     plot1.circle(x = date_list, y = total_sums, fill_color = "white", size = 9)
     plot1.xaxis.major_label_text_font_size = "11pt"
