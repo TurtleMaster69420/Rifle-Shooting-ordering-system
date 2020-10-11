@@ -417,3 +417,15 @@ body {
     position: relative;
     left: 115%;
 }
+
+.delete-item-button {
+    position: relative;
+    bottom: 75%;
+    left: 65%;
+}
+
+.menu {
+    display: grid;
+    grid-template-columns: 20% 20% 20% 20% 20%;
+    grid-auto-rows: 200px;
+}

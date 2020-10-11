@@ -49,11 +49,14 @@
             </div>
         {% endif %}
         <br>
-        <div style="display: inline-block;">
+        <br>
+        <br>
+        <div class="menu">
             {% for item in menu %}
-                <div class="cell"><img class="menu-item-image" src={{item["image"]}}>
+                <div class="cell" {% if edit %} style="background-color: #555555;" {% endif %}>
+                    <img class="menu-item-image" src={{item["image"]}}>
                     {% if edit %}
-                        <button></button>
+                        <a class="delete-item-button"><i style="color: red;" class="fa fa-times-circle"></i></a>
                     {% endif %}
                     <div class="menu-item-text" style="text-align: center">{{item["name"]}}<br>${{item["price"]}}</div>
                 </div>
