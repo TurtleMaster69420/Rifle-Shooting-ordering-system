@@ -532,7 +532,7 @@ def manager_menu():
     menu = [{'name':'chicken', 'image':'/static/menu/chicken.png', 'price':15, 'description': 'hi'},
             {'name':'beef', 'image':'/static/menu/beef.png', 'price':15, 'description':'hill'},
             {'name':'fish', 'image':'/static/menu/fish.png', 'price':20, 'description':'his'},
-            {'name':'vegetable', 'image':'/static/menu/veggie.png', 'price':12, 'description': 'hit'},
+            {'name':'vegetable', 'image':'/static/menu/veggie.png', 'price':12, 'description': 'hito'},
             {'name': 'water', 'image': '/static/menu/water.png', 'price': 2.50, 'description': 'hi'},
             {'name': 'coke', 'image': '/static/menu/coke.png', 'price': 3, 'description': 'hill'},
             {'name': 'sprite', 'image': '/static/menu/sprite.png', 'price': 3, 'description': 'his'},
