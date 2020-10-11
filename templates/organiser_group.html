@@ -1,0 +1,48 @@
+{% extends "orderer_base.html" %}
+{% block invite %}
+<a class="button invite" id="invite"><i class="fa fa-users"></i><b>Create new invite link</b></a>
+{% endblock %}
+{% block content %}
+<head>
+<style>
+.owedtoyou {
+    color: green;
+    font-weight: bold;
+}
+
+.owed {
+    color: red;
+    font-weight: bold;
+}
+
+</style>
+</head>
+    <h2>{{ group.name }} (Organiser)</h2>
+    <p>
+        {% if group.invite_code %}
+            Invite users with the following invite code: <b> {{ group.invite_code }} </b>
+        {% else %}
+            Your group has no invite code. Create one now!
+        {% endif %}
+    </p>
+    <p>
+        No time frame for accepting orders has been allocated. Set a due date and time now!
+    </p>
+    <input id="end_date" type="date"> <input id="end_time" type="time"><br>
+    <a class="button setTimeFrame" onclick="setTimeFrame()"><i class="fa fa-calendar"></i>Set end of time frame </a>
+
+    <p>Order Summary:
+        <br> • Chicken (x11, $11 each)
+        <br> • Wholemeal bread(x100, $8.45 each)
+        <br> • Paper (x1, $1 each)
+        <br> You owe nothing
+     </p>
+    <script>
+        document.getElementById("invite").href = window.location.href+"/"+"invite";
+        function setTimeFrame() {
+            var end_date = document.getElementById("end_date").value;
+            var end_time = document.getElementById("end_time").value;
+            window.location.href += `/setTimeFrame?date=${end_date}&time=${end_time}`;
+        }
+    </script>
+{% endblock %}

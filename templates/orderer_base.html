@@ -5,12 +5,12 @@
 {% endblock %}
 
 <body>
-<div class="form-popup" id="join_group_form" style="position: absolute">
-        <h1>Join Group</h1>
+    <div class="form-popup" id="join_group_form" style="position: absolute">
+    <h1>Join Group</h1>
 
         <input type="text" placeholder="Enter Invite Code" id="invite_code" required>
 
-        <button onclick="join_group()" class="btn">Join Group</button>
+        <br></b><button onclick="join_group()" class="btn">Join Group</button>
         <button type="button" class="btn cancel" onclick="close_join_group_form()">Close</button>
         <p id="join_error"></p>
     </div>
@@ -20,100 +20,111 @@
 
         <input type="text" placeholder="Enter Group Name" id="group_name" required>
 
-        <button onclick="create_group()" class="btn">Create Group</button>
+        <br><button onclick="create_group()" class="btn">Create Group</button>
         <button type="button" class="btn cancel" onclick="close_create_group_form()">Close</button>
         <p id="create_error"></p>
     </div>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <div id="mySidenav" class="sidenav">
-  <a href="/ordererer/home"> <i class="fa fa-fw fa-home"></i> Overview</a>
-  <a href="/orderer/about"> <i class="fa fa-info" style="margin-right: 3px"></i> About</a>
+    <div class="sidenav-main">
+        <a href="/orderer/home"> <i class="fa fa-fw fa-home"></i> Overview</a>
+        <a href="/orderer/about"> <i class="fa fa-info" style="margin-right: 3px"></i> About</a>
 
-  <button class="dropdown-btn"><i class="fa fa-chevron-right"></i> Groups In</button>
-    <div class="dropdown-container">
-        <a href="#">Group 1</a>
-        <a href="#">Group 2</a>
-        <a href="#">Group 3</a>
-    </div>
+        <button class="dropdown-btn"><i class="fa fa-chevron-right"></i> Groups In</button>
+        <div class="dropdown-container">
+            {% for group in groups_in %}
+                <a href="/orderer/group/{{group.gid}}">{{ group.name }}</a>
+            {% endfor %}
+        </div>
 
-  <button class="dropdown-btn"><i class="fa fa-chevron-right"></i> Groups Owned</button>
-    <div class="dropdown-container">
-        <a href="#">Group 4</a>
-        <a href="#">Group 5</a>
-        <a href="#">Group 6</a>
-    </div>
+        <button class="dropdown-btn"><i class="fa fa-chevron-right"></i> Groups Owned</button>
+        <div class="dropdown-container">
+            {% for group in groups_owned %}
+                <a href="/orderer/group/{{group.gid}}">{{ group.name }}</a>
+            {% endfor %}
+        </div>
 
-  <a class="button join" onclick="open_join_group_form()"><i class="fa fa-arrow-up"></i>Join group</a>
+        <a class="button join" onclick="open_join_group_form()"><i class="fa fa-arrow-up"></i><b>Join group</b></a>
 
-    <script>
-    function open_join_group_form() {
-        document.getElementById("create_group_form").style.display = "none";
-        document.getElementById("join_group_form").style.display = "block";
-    }
-
-    function close_join_group_form() {
-        document.getElementById("join_group_form").style.display = "none";
-    }
-
-    function join_group() {
-      var invite_code = document.getElementById("invite_code").value;
-      var xhttp = new XMLHttpRequest();
-      xhttp.open("POST", "/orderer/join", true);
-      xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-      xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            if (this.status == 200) {
-                var myArr = JSON.parse(this.responseText);
-                window.location.href = myArr['url'];
-            }
-            else {
-                var myArr = JSON.parse(this.responseText);
-                document.getElementById("join_error").innerHTML = myArr['error'];
-            }
+        <script>
+        function open_join_group_form() {
+            document.getElementById("create_group_form").style.display = "none";
+            document.getElementById("join_group_form").style.display = "block";
         }
-      };
-        xhttp.send("inviteCode="+invite_code);
-    }
 
-    function open_create_group_form() {
-        document.getElementById("join_group_form").style.display = "none";
-        document.getElementById("create_group_form").style.display = "block";
-    }
-
-    function close_create_group_form() {
-        document.getElementById("create_group_form").style.display = "none";
-    }
-
-    function create_group() {
-      var group_name = document.getElementById("group_name").value;
-      var xhttp = new XMLHttpRequest();
-      xhttp.open("POST", "/orderer/create", true);
-      xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-      xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            if (this.status == 200) {
-                var myArr = JSON.parse(this.responseText);
-                console.log(myArr);
-                window.location.href = myArr['url'];
-            }
-            else {
-                var myArr = JSON.parse(this.responseText);
-                document.getElementById("create_error").innerHTML = myArr['error'];
-            }
+        function close_join_group_form() {
+            document.getElementById("join_group_form").style.display = "none";
         }
-      };
-      console.log("why is kalaish stupid");
-      xhttp.send("name="+group_name);
-    }
-    </script>
 
-  <a class="button create" onclick="open_create_group_form()"><i class="fa fa-plus"></i>Create group</a>
-  <a href="/logout" style="position: absolute; bottom: 7%" class="logout"><i class="fa fa-sign-out"></i> Logout</a>
+        function join_group() {
+          var invite_code = document.getElementById("invite_code").value;
+          var xhttp = new XMLHttpRequest();
+          xhttp.open("POST", "/orderer/join", true);
+          xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+          xhttp.onreadystatechange = function() {
+            if (this.readyState == 4) {
+                if (this.status == 200) {
+                    var myArr = JSON.parse(this.responseText);
+                    window.location.href = myArr['url'];
+                }
+                else {
+                    var myArr = JSON.parse(this.responseText);
+                    document.getElementById("join_error").innerHTML = myArr['error'];
+                }
+            }
+          };
+            xhttp.send("invite_code="+encodeURIComponent(invite_code));
+        }
+
+        function open_create_group_form() {
+            document.getElementById("join_group_form").style.display = "none";
+            document.getElementById("create_group_form").style.display = "block";
+        }
+
+        function close_create_group_form() {
+            document.getElementById("create_group_form").style.display = "none";
+        }
+
+        function create_group() {
+          var group_name = document.getElementById("group_name").value;
+          var xhttp = new XMLHttpRequest();
+          xhttp.open("POST", "/orderer/create", true);
+          xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+          xhttp.onreadystatechange = function() {
+            if (this.readyState == 4) {
+                if (this.status == 200) {
+                    var myArr = JSON.parse(this.responseText);
+                    console.log(myArr);
+                    window.location.href = myArr['url'];
+                }
+                else {
+                    var myArr = JSON.parse(this.responseText);
+                    document.getElementById("create_error").innerHTML = myArr['error'];
+                }
+            }
+          };
+          xhttp.send("name="+encodeURIComponent(group_name));
+        }
+        </script>
+
+        <a class="button create" onclick="open_create_group_form()"><i class="fa fa-plus"></i><b>Create group</b></a>
+        {% block invite %} {% endblock %}
+    </div>
+    <a href="/logout" style="position: absolute; bottom: 7%" class="logout"><i class="fa fa-sign-out"></i> Logout</a>
 </div>
 
 <div id="main" style="position: relative">
-    {% block content %} {% endblock %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <p class="{{ category }}">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <div class="content">
+        {% block content %} {% endblock %}
+    </div>
 
 </div>
 

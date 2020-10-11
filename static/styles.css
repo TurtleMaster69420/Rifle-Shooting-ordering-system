@@ -1,3 +1,12 @@
+input {
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+button {
+    border-radius: 4px;
+}
+
 .box {
     width:30%;
     margin: 0;
@@ -57,12 +66,12 @@
 
 body {
     margin: auto;
-    background-image: url("/static/auth_background.jpg");
-    background-size: cover;
+    background-image: url("/static/auth_background.png");
+    background-repeat: repeat;
 }
 
 body {
-    font-family: "Lato", sans-serif;
+    font-family: Calibri, serif;
 }
 
 .button {
@@ -76,15 +85,20 @@ body {
 
 .button.create {
     color: green;
-    background-color: rgb(170, 170, 170);
-    border-color: rgb(170, 170, 170);
+    background-color: white;
     width: auto;
     margin-right: 5%;
 }
 .button.join {
     color: #037bfc;
-    background-color: rgb(170, 170, 170);
-    border-color: rgb(170, 170, 170);
+    background-color: white;
+    width: auto;
+    margin-right: 5%;
+}
+
+.button.invite {
+    color: #c966ff;
+    background-color: white;
     width: auto;
     margin-right: 5%;
 }
@@ -101,6 +115,24 @@ body {
     border-color: #037bfc;
 }
 
+.button.invite:hover {
+    color: white;
+    background-color: #c966ff;
+    border-color: #c966ff;
+}
+
+.button.setTimeFrame {
+    transition: 0.3s;
+    color: orange;
+    padding: 5px 10px 5px 10px;
+    background-color: white;
+}
+
+.button.setTimeFrame:hover {
+    color: white;
+    background-color: orange;
+}
+
 .sidenav {
     height: 100%;
     width: 20%;
@@ -112,6 +144,18 @@ body {
     overflow-x: hidden;
     transition: 0.35s;
     padding-top: 40px;
+}
+
+
+.sidenav-main {
+    overflow-y: hidden;
+    height: 80%;
+    padding-right: 25px;
+}
+
+.sidenav-main:hover {
+    overflow-y: scroll;
+    padding-right: 3px;
 }
 
 .sidenav a {
@@ -193,6 +237,13 @@ body {
     font-weight: bold;
 }
 
+.danger {
+    color: red;
+    font-weight: bold;
+}
+
+
+
 .open-button {
   background-color: #555;
   color: white;
@@ -208,13 +259,16 @@ body {
 
 /* The popup form - hidden by default */
 .form-popup {
+    padding-left: 2%;
     color: white;
     display: none;
-    width: 15.6%;
-    border: 3px solid #f1f1f1;
+    width: 12%;
+    background-color: black;
     z-index: 9;
     position: relative;
-    margin-top: 25%;
+    margin-top: 15%;
+    margin-left: 85%;
+    border-radius: 10%;
 }
 
 /* Add styles to the form container */
@@ -259,4 +313,9 @@ body {
 /* Add some hover effects to buttons */
 .form-container .btn:hover, .open-button:hover {
   opacity: 1;
+}
+
+.content {
+    font-size: 20px;
+    width: 80%;
 }
