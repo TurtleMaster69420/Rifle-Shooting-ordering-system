@@ -148,15 +148,11 @@ body {
 
 
 .sidenav-main {
-    overflow-y: hidden;
+    overflow-y: auto;
     height: 80%;
     padding-right: 25px;
 }
 
-.sidenav-main:hover {
-    overflow-y: scroll;
-    padding-right: 3px;
-}
 
 .sidenav a {
     padding: 8px 8px 8px 32px;
