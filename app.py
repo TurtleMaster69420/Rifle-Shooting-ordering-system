@@ -445,6 +445,11 @@ def group(gid):
     if not group_wanted:
         return redirect("/orderer/home")
 
+    # remove time frame if it has finished
+    if group_wanted.timeframe_end < datetime.datetime.today():
+        group_wanted.timeframe_end = None
+        db.session.commit()
+
     user = User.query.get(session["user"])
 
     # if the user is the organiser, display the organiser page
@@ -503,12 +508,14 @@ def manager_menu():
 
     return render_template("manager_menu.html", menu=menu, reverse=(reverse == 'true'))
 
+
 @app.route('/manager/staff')
 def manager_staff():
     allowed, new_page = authenticate("manager")
     if not allowed:
         return redirect(new_page)
     return render_template("manager_staff.html")
+
 
 if __name__ == '__main__':
     app.run()
