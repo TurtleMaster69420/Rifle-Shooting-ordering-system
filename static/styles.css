@@ -103,6 +103,19 @@ body {
     margin-right: 5%;
 }
 
+.button.submit {
+    color: black;
+    background-color: white;
+    width: auto;
+    padding: 5px 10px 5px 10px;
+    transition: 0.3s;
+}
+
+.button.submit:hover {
+    color: white;
+    background-color: black;
+}
+
 .button.create:hover {
     color: white;
     background-color: green;
@@ -254,15 +267,15 @@ body {
 
 /* The popup form - hidden by default */
 .form-popup {
-    padding-left: 2%;
+    padding-left: 1%;
     color: white;
     display: none;
     width: 12%;
     background-color: black;
     z-index: 9;
     position: relative;
+    margin-left: 42%;
     margin-top: 15%;
-    margin-left: 85%;
     border-radius: 10%;
 }
 
@@ -319,20 +332,15 @@ body {
 
 .cell:hover .menu-item-image {
     margin-left: 25px;
-    margin-top: 10;
+    margin-top: 10px;
     height: 120px;
     transition-duration: 0.2s;
-}
-
-.menu-item-text:hover {
-    color: red;
 }
 
 .menu-item-text {
     text-align: center;
     position: absolute;
-    bottom: 5%;
-    left: 30%
+    bottom: -5%;
 }
 
 .dropbtn {
@@ -435,7 +443,21 @@ body {
 }
 
 .cell {
+    cursor: pointer;
     position: relative;
+}
+
+.item {
+    height: 200px;
+    position: relative;
+    transition-duration: 0.2s;
+}
+
+.enlarge {
+    margin-left: 25px;
+    margin-top: 10px;
+    height: 120px;
+    transition-duration: 0.2s;
 }
 
 .menu-edit-form {
@@ -464,4 +486,25 @@ td, th {
 
 tr:nth-child(even) {
   background-color: #dddddd;
+}
+
+table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 40%;
+    margin: auto;
+}
+
+td, th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+  background-color: #dddddd;
+}
+
+.fa-info-circle {
+    cursor: pointer;
 }

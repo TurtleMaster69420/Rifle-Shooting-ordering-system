@@ -37,43 +37,19 @@
             <a style="display: block" onclick="toggle_ascending()" href="javascript:setParam('reverse', 'true');" id="descending_button" class="descending_button"><i class="fa fa-arrow-down"></i>Descending</a>
         </div>
         {% endif %}
-        {% if not edit %}
-            <div style="display: inline-block">
-                <a class="edit-menu-button" onclick="open_create_group_form()" href="javascript:setParam('edit', 'true');"><i class="fa fa-pencil"></i>Edit Menu</a>
-            </div>
-        {% else %}
-            <div style="display: inline-block">
-                <a class="cancel-changes-button" onclick="document.getElementById('edit-menu-form').reset();" href="javascript:setParam('edit', 'false');"><i class="fa fa-times"></i>Cancel Changes</a>
-                <a class="save-changes-button" onclick="document.getElementById('edit-menu-form').submit();" href="javascript:setParam('edit', 'false');"><i class="fa fa-check"></i>Save Changes</a>
-            </div>
-        {% endif %}
         <br>
         <br>
         <br>
         <div class="menu">
             {% for item in menu %}
-                <div class="cell" {% if edit %} style="background-color: rgba(171, 176, 184, 0.5); border-radius: 10%" {% endif %}>
+                <div class="cell" onclick="window.location.href=`/item?id={{ item['id'] }}`">
                     <img class="menu-item-image" src={{item["image"]}}>
-                    {% if edit %}
-                        <form id="edit-menu-form" action="/manager/menu" method="POST">
-                            <input name={{item["name"]}}name class="menu-edit-form" type="text" placeholder="name" value={{item["name"]}}>
-                            <input name={{item["name"]}}price class="menu-edit-form" type="text" placeholder="price" value={{item["price"]}}>
-                        </form>
-                    {% else %}
                         <div class="menu-item-text">
                             {{item["name"]}}<br>
                             ${{item["price"]}}
                         </div>
-                    {% endif %}
-                    {% if edit %}
-                        <a class="delete-item-button"><i style="color: red;" class="fa fa-times-circle"></i></a>
-                    {% endif %}
                 </div>
             {% endfor %}
-            {% if edit %}
-                <div class="cell" {% if edit %} style="background-color: rgba(171, 176, 184, 0.5); border-radius: 10%" {% endif %}>
-                </div>
-            {% endif %}
         </div>
     </div>
     <script>

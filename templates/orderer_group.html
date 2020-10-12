@@ -16,24 +16,85 @@
 </head>
 
     <h2>{{ group.name }} (Member)</h2>
-    {% if group.timeframe_end %}
+    {% if group.processing_orders %}
+    <p> The orders in this group are currently being processed</p>
+    {% if order %}
+        <p>Here is a summary of yours:</p>
+        <ul>
+            {% for info in order.info %}
+                <li>{{ info.quantity }} {{ info.item.name }} (${{ '%0.2f' % info.item.price }} each, total of ${{ '%0.2f' % (info.item.price * info.quantity) }})</li>
+            {% endfor %}
+        </ul>
+        Total amount: ${{ '%0.2f' % order.total_cost }}
+    {% else %}
+        <p>You have not made one during the allocated timeframe.</p>
+    {% endif %}
+    {% elif group.collecting_orders %}
+    <p>The organiser is currently collecting this group's orders</p>
+    {% if order %}
+        <p>Here is a summary of yours:</p>
+        <ul>
+            {% for info in order.info %}
+                <li>{{ info.quantity }} {{ info.item.name }} (${{ '%0.2f' % info.item.price }} each, total of ${{ '%0.2f' % (info.item.price * info.quantity) }})</li>
+            {% endfor %}
+        </ul>
+        Total amount: ${{ '%0.2f' % order.total_cost }}
+    {% else %}
+        <p>You have not made one during the allocated timeframe.</p>
+    {% endif %}
+    {% elif group.timeframe_end %}
     {% if order %}
         <p>
             Order summary:
             <ul>
                 {% for info in order.info %}
-                    <li>{{ info.quantity }} {{ info.item[0].name }} ({{ info.item[0].price }} each, total of {{ info.item[0].price * info.quantity }})</li>
+                    <li>{{ info.quantity }} {{ info.item.name }} (${{ '%0.2f' % info.item.price }} each, total of ${{ '%0.2f' % (info.item.price * info.quantity) }})</li>
                 {% endfor %}
             </ul>
-            Total amount: {{ order.total_cost }}
+            Total amount: ${{ '%0.2f' % order.total_cost }}
         </p>
     {% else %}
         <p>You have not made an order yet. Make one now!</p>
     {% endif %}
-    <!-- add menu here kalaish (provide item information and box where they can input quantity -->
-    <!-- total amount will show at the bottom (javascript will add all prices * quantities) -->
-    <!-- button here will send a request to "/orderer/ABC" (for now) with the selected items and quantity provided -->
+    <div class="menu">
+        {% for item in menu %}
+            <div class="item" id={{item.item_id}} style="border: black 1px solid; border-radius: 10px;">
+                <i class="fa fa-info-circle" style="position: absolute" onclick="window.location.href=`/item?id={{ item.item_id }}`"></i>
+                <img class="menu-item-image" src={{item["image"]}}>
+                    <div class="menu-item-text" >
+                        {{ item.name }}<br>
+                        ${{ "%0.2f" % item.price }}
+                        <input type="number" placeholder="Enter quantity" oninput="updateQuantity(this)">
+                    </div>
+            </div>
+        {% endfor %}
+    </div>
+    <br><a class="button submit" onclick=sendOrder()>Submit order</a>
     {% else %}
         <p>You currently cannot submit any orders as no timeframe has been allocated.</p>
     {% endif %}
+    <script>
+        orders = {};
+
+        function updateQuantity(quant) {
+            var item_id = quant.parentElement.parentElement.id;
+            var image = quant.parentElement.parentElement.children[0];
+
+            if (quant.value === "" || parseInt(quant.value) === 0) {
+                delete orders[item_id];
+                quant.parentElement.parentElement.style.backgroundColor = "";
+                image.classList.remove("enlarge");
+            } else {
+                orders[item_id] = parseInt(quant.value);
+                quant.parentElement.parentElement.style.backgroundColor = "limegreen";
+                image.classList.add("enlarge");
+            }
+        }
+
+        function sendOrder() {
+            var x = new URLSearchParams(orders).toString();
+            window.location.href += `/makeOrder?${x}`;
+        }
+
+    </script>
 {% endblock %}

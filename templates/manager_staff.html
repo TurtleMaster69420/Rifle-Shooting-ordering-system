@@ -5,13 +5,11 @@
           <tr>
             <th>Name</th>
             <th>Email</th>
-            <th>Password</th>
           </tr>
             {% for member in staff %}
               <tr>
                 <td>{{member["name"]}}</td>
                 <td>{{member["email"]}}</td>
-                <td>{{member["password"]}}</td>
               </tr>
             {% endfor %}
         </table>
