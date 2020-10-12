@@ -396,7 +396,20 @@ body {
     border: none;
     border-radius: 4px;
     position: relative;
-    left: 410%;
+    left: 164%;
+    display: inline-block;
+}
+
+.add-item-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 16px;
+    font-size: 16px;
+    border: none;
+    border-radius: 4px;
+    position: relative;
+    left: 157%;
+    display: inline-block;
 }
 
 .cancel-changes-button {
@@ -448,6 +461,7 @@ body {
     box-sizing: border-box;
     position: relative;
     left: 15%;
+    top: 10px;
 }
 
 table {
@@ -464,4 +478,34 @@ td, th {
 
 tr:nth-child(even) {
   background-color: #dddddd;
+}
+
+.inputfile {
+	width: 0.1px;
+	height: 0.1px;
+	opacity: 0;
+	overflow: hidden;
+	position: absolute;
+	z-index: -1;
+}
+
+.inputfile + label {
+    color: white;
+    background-color: rgb(171, 176, 184);
+    display: inline-block;
+    padding: 6px;
+    border-radius: 4px;
+    position: relative;
+    left: 14%;
+    transition-duration: 0.2s;
+}
+
+.inputfile:focus + label,
+.inputfile + label:hover {
+    background-color: indianred;
+    transition-duration: 0.2s;
+}
+
+.inputfile + label {
+	cursor: pointer; /* "hand" cursor */
 }

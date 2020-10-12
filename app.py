@@ -9,6 +9,7 @@ from forgot_password_form import forgot_password_form
 from set_new_password_form import set_new_password_form
 from dotenv import load_dotenv
 from register_form import registerForm
+from werkzeug.utils import secure_filename
 import datetime
 import os
 import time
@@ -16,7 +17,13 @@ import random
 
 load_dotenv()
 
+UPLOAD_FOLDER = '/static/menu'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+
 
 # load certain config variables from an env file
 app.config.update(
@@ -45,6 +52,9 @@ group_members = db.Table("group_members",
                          db.Column("group_id", db.Integer, db.ForeignKey("group.group_id"))
                          )
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_gid():
     now = time.time()
@@ -526,46 +536,68 @@ def manager_menu():
     if not allowed:
         return redirect(new_page)
 
-    menu_raw = Item.query.all()
-    for item in menu_raw:
-        menu_raw.append({"name": item.name, "image": item.image, "price": item.price, "description": item.description})
-    menu = [{'name':'chicken', 'image':'/static/menu/chicken.png', 'price':15, 'description': 'hi'},
-            {'name':'beef', 'image':'/static/menu/beef.png', 'price':15, 'description':'hill'},
-            {'name':'fish', 'image':'/static/menu/fish.png', 'price':20, 'description':'his'},
-            {'name':'vegetable', 'image':'/static/menu/veggie.png', 'price':12, 'description': 'hit'},
-            {'name': 'water', 'image': '/static/menu/water.png', 'price': 2.50, 'description': 'hi'},
-            {'name': 'coke', 'image': '/static/menu/coke.png', 'price': 3, 'description': 'hill'},
-            {'name': 'sprite', 'image': '/static/menu/sprite.png', 'price': 3, 'description': 'his'},
-            {'name': 'fanta', 'image': '/static/menu/fanta.png', 'price': 4, 'description': 'hit'},
-            {'name': 'fries', 'image': '/static/menu/fries.png', 'price': 5, 'description': 'fries'}
-            ]
-
-    filter = request.args.get('filter', 'name')
-    reverse = (request.args.get('reverse', 'false') == 'true')
-    edit = (request.args.get('edit', 'false') == 'true')
-
-    print(1)
+    valid = True
     if request.method == "POST":
         form = request.form
         print(form)
-        print('hi')
+
+        if 'item-image' in form:
+            if not (form.get('item-image') and form.get('name') and form.get('price')):
+                valid = False
+            else:
+                print(request.files)
+                file = request.files['file']
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                new_item = Item(name=form.get('name'), price=form.get('price'), image=('/static/menu/' + secure_filename(form.get('item-image'))), description=form.get('name'))
+                db.session.add(new_item)
+                db.session.commit()
+        else:
+            for item in Item.query.all():
+                item.name = form.get(str(item.item_id) + 'name')
+                item.price = form.get(str(item.item_id) + 'price')
+                if form.get(str(item.item_id) + 'remove', 'off') == 'on':
+                    Item.query.filter_by(item_id=item.item_id).delete()
+            db.session.commit()
+
+    menu = []
+    menu_raw = Item.query.all()
+    for item in menu_raw:
+        menu.append({"id": item.item_id, "name": item.name, "image": item.image, "price": item.price, "description": item.description})
+
+    filter = request.args.get('filter', 'name')
+    reverse = (request.args.get('reverse', 'false') == 'true')
+    mode = (request.args.get('mode', 'normal'))
+    if not valid:
+        mode = 'add'
 
     menu = sorted(menu, key=lambda i: i[filter])
     if reverse:
         menu.reverse()
 
-    return render_template("manager_menu.html", menu=menu, reverse=reverse, edit=edit)
 
+    return render_template("manager_menu.html", menu=menu, reverse=reverse, edit=(mode == 'edit'), add=(mode == 'add'), normal=(mode == 'normal'), valid=valid)
+
+@app.route('/manager/add_item', methods=["POST"])
+def manager_add_item():
+    print(123)
+    allowed, new_page = authenticate("manager")
+    if not allowed:
+        return redirect(new_page)
+    if request.method == "POST":
+        form = request.form
+        print(form)
 
 @app.route('/manager/staff')
 def manager_staff():
     allowed, new_page = authenticate("manager")
     if not allowed:
         return redirect(new_page)
-    staff = [{'name':'Kalaish', 'email': 'stanley.kal42@gmail.com', 'password': 'password'},
-             {'name':'Kalaish', 'email': 'stanley.kal42@gmail.com', 'password': 'password'},
-             {'name':'Kalaish', 'email': 'stanley.kal42@gmail.com', 'password': 'password'},
-             {'name':'Kalaish', 'email': 'stanley.kal42@gmail.com', 'password': 'password'},
+    staff = [{'name':'Bob', 'email': 'bob@gmail.com'},
+             {'name':'Rob', 'email': 'rob42@gmail.com'},
+             {'name':'Cob', 'email': 'cob@gmail.com'},
+             {'name':'Nob', 'email': 'nob@gmail.com'},
     ]
     return render_template("manager_staff.html", staff=staff)
 
