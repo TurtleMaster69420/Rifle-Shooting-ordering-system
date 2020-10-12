@@ -37,22 +37,101 @@
             <a style="display: block" onclick="toggle_ascending()" href="javascript:setParam('reverse', 'true');" id="descending_button" class="descending_button"><i class="fa fa-arrow-down"></i>Descending</a>
         </div>
         {% endif %}
+        {% if normal %}
+            <div style="display: inline-block">
+                <a class="add-item-button" href="javascript:setParam('mode', 'add');"><i class="fa fa-plus-circle"></i>Add Item</a>
+                <a class="edit-menu-button" href="javascript:setParam('mode', 'edit');"><i class="fa fa-pencil"></i>Edit Menu</a>
+            </div>
+        {% elif edit %}
+            <div style="display: inline-block">
+                <a class="cancel-changes-button" onclick="document.getElementById('edit-menu-form').reset();" href="javascript:setParam('mode', 'normal');"><i class="fa fa-times"></i>Cancel Changes</a>
+                <a class="save-changes-button" onclick="document.getElementById('edit-menu-form').submit();" href="javascript:setParam('mode', 'normal');"><i class="fa fa-check"></i>Save Changes</a>
+            </div>
+        {% elif add %}
+            <div style="display: inline-block; position: relative; left: 9.7%">
+                <a class="cancel-changes-button" onclick="document.getElementById('edit-menu-form').reset();" href="javascript:setParam('mode', 'normal');"><i class="fa fa-times"></i>Discard Item</a>
+                <a class="save-changes-button" onclick="document.getElementById('edit-menu-form').submit();" href="javascript:setParam('mode', 'normal');"><i class="fa fa-check"></i>Save Item</a>
+            </div>
+        {% endif %}
         <br>
         <br>
         <br>
+    <form id="edit-menu-form" action="/manager/menu" method="POST">
         <div class="menu">
+            {% if add %}
+                <div class="cell" style="background-color: rgba(171, 176, 184, 0.5); border-radius: 10%">
+                    <div id="new_item_form">
+                        <h3 style="text-align: center">New Item</h3>
+                            <input class="inputfile" type="file" id="item-image" name="item-image" placeholder="item image" accept="image/png, image/jpeg, image/jpg">
+                            <label for="item-image">Choose image file</label>
+
+                            <input style="position: relative; top: 40px" name="name" class="menu-edit-form" type="text" placeholder="name">
+                            <input style="position: relative; top: 40px" name="price" class="menu-edit-form" type="text" placeholder="price">
+                            {% if not valid %}<p style="color: red">All fields must be filled</p>{% endif %}
+                    </div>
+                </div>
+            {% endif %}
             {% for item in menu %}
-                <div class="cell" onclick="window.location.href=`/item?id={{ item['id'] }}`">
-                    <img class="menu-item-image" src={{item["image"]}}>
-                        <div class="menu-item-text">
+                <div id="{{ item['id'] }}" class="cell" {% if not normal %} style="background-color: rgba(171, 176, 184, 0.5); border-radius: 10%" {% endif %}>
+                    <img id="{{ item['id'] }}_image" class="menu-item-image" src={{item["image"]}}>
+                    {% if edit %}
+                        <div id="{{ item['id'] }}_form">
+                            <input name={{item["id"]}}name class="menu-edit-form" type="text" placeholder="name" value={{item["name"]}}>
+                            <input name={{item["id"]}}price class="menu-edit-form" type="text" placeholder="price" value={{item["price"]}}>
+                        </div>
+                    {% else %}
+                        <div class="menu-item-text manager-item">
                             {{item["name"]}}<br>
                             ${{item["price"]}}
                         </div>
+                    {% endif %}
+                    <div id="{{ item['id'] }}_text" class="menu-item-text" style="display: none">
+                        {{item["name"]}}<br>
+                        ${{item["price"]}}
+                    </div>
+                    {% if edit %}
+                        <a id="{{ item['id'] }}_button" class="delete-item-button" onclick="remove_item({{ item['id'] }})"><i style="color: red;" class="fa fa-times-circle"></i></a>
+                        <input type="checkbox" style="display: none" name="{{item["id"]}}remove" id="{{item["id"]}}_remove">
+                    {% endif %}
+                    <a style="display: none" id="{{ item['id'] }}_add_button" class="delete-item-button" onclick="re_add_item({{ item['id'] }})">Re-add Item<i style="color: green;" class="fa fa-check"></i></a>
                 </div>
             {% endfor %}
         </div>
+    </form>
     </div>
     <script>
+        function remove_item(id) {
+            document.getElementById(id).style.backgroundColor = "rgba(176, 44, 44, 0.5)";
+            document.getElementById(id).style.transitionDuration = "0.3s";
+            document.getElementById(id + '_image').style.opacity = "0.5";
+            document.getElementById(id + '_image').style.transitionDuration = "0.3s";
+            document.getElementById(id + '_form').style.display = "none";
+            document.getElementById(id + '_text').style.display = "block";
+            document.getElementById(id + '_text').style.opacity = "0.5";
+            document.getElementById(id + '_text').style.transitionDuration = "0.3s";
+            document.getElementById(id + '_button').style.display = "none";
+            document.getElementById(id + '_button').style.transitionDuration = "0.3s";
+            document.getElementById(id + '_add_button').style.display = "block";
+            document.getElementById(id + '_add_button').style.transitionDuration = "0.3s";
+            document.getElementById(id + '_remove').checked = true;
+        }
+
+        function re_add_item(id) {
+            document.getElementById(id).style.backgroundColor = "rgba(171, 176, 184, 0.5)";
+            document.getElementById(id).style.transitionDuration = "0.3s";
+            document.getElementById(id + '_image').style.opacity = "1";
+            document.getElementById(id + '_image').style.transitionDuration = "0.3s";
+            document.getElementById(id + '_form').style.display = "block";
+            document.getElementById(id + '_text').style.display = "none";
+            document.getElementById(id + '_text').style.opacity = "1";
+            document.getElementById(id + '_text').style.transitionDuration = "0.3s";
+            document.getElementById(id + '_button').style.display = "block";
+            document.getElementById(id + '_button').style.transitionDuration = "0.3s";
+            document.getElementById(id + '_add_button').style.display = "none";
+            document.getElementById(id + '_add_button').style.transitionDuration = "0.3s";
+            document.getElementById(id + '_remove').checked = false;
+        }
+
         function toggle_descending() {
             document.getElementById("ascending_button").style.display = "none";
             document.getElementById("descending_button").style.display = "block";

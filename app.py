@@ -9,6 +9,7 @@ from forgot_password_form import forgot_password_form
 from set_new_password_form import set_new_password_form
 from dotenv import load_dotenv
 from register_form import registerForm
+from werkzeug.utils import secure_filename
 import datetime
 import os
 import time
@@ -16,7 +17,13 @@ import random
 
 load_dotenv()
 
+UPLOAD_FOLDER = '/static/menu'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+
 
 # load certain config variables from an env file
 app.config.update(
@@ -45,6 +52,9 @@ group_members = db.Table("group_members",
                          db.Column("group_id", db.Integer, db.ForeignKey("group.group_id"))
                          )
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_gid():
     now = time.time()
@@ -408,7 +418,6 @@ def group_invite(gid):
 
     # if the user is not the organiser of the group
     if group_wanted.organiser_id != session["user"]:
-        print("yoeoey")
         return redirect("/orderer/home")
 
     # assign the group invite code as a 24 character, random readable string and redirect organiser back to their group
@@ -522,6 +531,32 @@ def make_order(gid):
     return redirect(f"/orderer/group/{gid}")
 
 
+@app.route('/orderer/group/<gid>/collected')
+def group_collect(gid):
+    allowed, new_page = authenticate("orderer")
+    if not allowed:
+        return redirect(new_page)
+
+    # check if the group exists
+    group_wanted = Group.query.filter_by(gid=gid).first()
+    if not gid:
+        return redirect('/orderer/home')
+
+    # check if the orders are being collected and that the user sending the confirmation for this is the organiser
+    if not group_wanted.collecting_orders or group_wanted.organiser_id != session["user"]:
+        return redirect('/orderer/home')
+
+    # delete orders from database
+    group_wanted.collecting_orders = False
+    for order in group_wanted.orders:
+        Info.query.filter_by(order_id=order.order_id).delete()
+        Order.query.filter_by(order_id=order.order_id).delete()
+    db.session.commit()
+
+    flash("Reset group to intial state.", "success")
+    return redirect(f'/orderer/group/{gid}')
+
+
 @app.route('/orderer/group/<gid>', methods=["GET"])
 def group(gid):
     allowed, new_page = authenticate("orderer")
@@ -548,18 +583,26 @@ def group(gid):
         group_wanted.collecting_orders = False
         db.session.commit()
 
+    if group_wanted.timeframe_end:
+        due_date = group_wanted.timeframe_end.strftime("%H:%M %p on the {{DATE}} of %B, %Y")
+        date = group_wanted.timeframe_end.day
+        if 11 <= date <= 13:
+            date =
+    else:
+        due_date = None
+
     # if the user is the organiser, display the organiser page
     if group_wanted.organiser_id == session["user"]:
         orders = []
         for o in group_wanted.orders:
             orders.append({"name": User.query.get(o.orderer_id).name, "info": o.info, "total_cost": o.total_cost})
         return render_template("organiser_group.html", groups_in=user.groups_in,
-                               groups_owned=user.groups_owned, group=group_wanted, orders=orders, order=Order.query.filter_by(orderer_id=session["user"], group_id=group_wanted.group_id).first(), menu=menu)
+                               groups_owned=user.groups_owned, group=group_wanted, orders=orders, order=Order.query.filter_by(orderer_id=session["user"], group_id=group_wanted.group_id).first(), due_date=due_date, menu=menu)
 
     # if the user is a normal member, display the default orderer page
     if group_wanted.members.filter_by(user_id=session["user"]).first():
         return render_template("orderer_group.html", groups_in=user.groups_in,
-                               groups_owned=user.groups_owned, group=group_wanted, order=Order.query.filter_by(orderer_id=session["user"], group_in=group_wanted).first(), menu=menu)
+                               groups_owned=user.groups_owned, group=group_wanted, order=Order.query.filter_by(orderer_id=session["user"], group_in=group_wanted).first(), menu=menu, due_date=due_date)
 
     # otherwise, redirect the user back the their home page (they are unauthenticated)
     return redirect("/orderer/home")
@@ -570,7 +613,59 @@ def staff_home():
     allowed, new_page = authenticate("staff")
     if not allowed:
         return redirect(new_page)
-    return render_template("staff_home.html")
+
+    group_first = Group.query.filter_by(processing_orders=True).first()
+
+    # if there are groups that need orders to be cooked
+    if group_first:
+        return redirect(f"/staff/home/{group_first.gid}")
+
+    # otherwise, display the page showing that there are no orders to be cooked
+    return render_template("staff_home.html", no_orders=True)
+
+
+@app.route('/staff/home/<gid>/submit')
+def submit_order(gid):
+    allowed, new_page = authenticate("staff")
+    if not allowed:
+        return redirect(new_page)
+
+    group_wanted = Group.query.filter_by(gid=gid).first()
+
+    # check if group exists and order is being cooked
+    if group_wanted and group_wanted.processing_orders:
+        group_wanted.processing_orders = False
+        group_wanted.collecting_orders = True
+
+        flash("The order has been completed!", "success")
+        db.session.commit()
+
+    return redirect("/staff/home")
+
+
+@app.route('/staff/home/<gid>')
+def staff_order(gid):
+    allowed, new_page = authenticate("staff")
+    if not allowed:
+        return redirect(new_page)
+
+    # check if gid exists and the group is ready to have their orders cooked
+    group_wanted = Group.query.filter_by(gid=gid).first()
+
+    if not group_wanted or not group_wanted.processing_orders:
+        return redirect("/staff/home")  # no infinite recursion since this page will find the correct gid
+
+    # otherwise, return the orders in this page
+    groups = Group.query.filter_by(processing_orders=True).all()
+    orders = {}
+    for order in group_wanted.orders:
+        for info in order.info:
+            if info.item in orders:
+                orders[info.item.name] += info.quantity
+            else:
+                orders[info.item.name] = info.quantity
+
+    return render_template("staff_home.html", groups=groups, orders=orders, name=group_wanted.name)
 
 
 @app.route('/manager/home')
@@ -587,21 +682,60 @@ def manager_menu():
     if not allowed:
         return redirect(new_page)
 
-    menu_raw = Item.query.all()
+    valid = True
+    if request.method == "POST":
+        form = request.form
+        print(form)
+
+        if 'item-image' in form:
+            if not (form.get('item-image') and form.get('name') and form.get('price')):
+                valid = False
+            else:
+                print(request.files)
+                file = request.files['file']
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                new_item = Item(name=form.get('name'), price=form.get('price'), image=('/static/menu/' + secure_filename(form.get('item-image'))), description=form.get('name'))
+                db.session.add(new_item)
+                db.session.commit()
+        else:
+            for item in Item.query.all():
+                item.name = form.get(str(item.item_id) + 'name')
+                item.price = form.get(str(item.item_id) + 'price')
+                if form.get(str(item.item_id) + 'remove', 'off') == 'on':
+                    Item.query.filter_by(item_id=item.item_id).delete()
+            db.session.commit()
+
     menu = []
+    menu_raw = Item.query.all()
     for item in menu_raw:
-        menu.append({"id": item.item_id, "name": item.name, "image": item.image, "price": item.price})
+        menu.append({"id": item.item_id, "name": item.name, "image": item.image, "price": item.price, "description": item.description})
 
     filter = request.args.get('filter', 'name')
     reverse = (request.args.get('reverse', 'false') == 'true')
     edit = (request.args.get('edit', 'false') == 'true')
 
+    mode = (request.args.get('mode', 'normal'))
+    if not valid:
+        mode = 'add'
+
     menu = sorted(menu, key=lambda i: i[filter])
     if reverse:
         menu.reverse()
 
-    return render_template("manager_menu.html", menu=menu, reverse=reverse, edit=edit)
+    return render_template("manager_menu.html", menu=menu, reverse=reverse, edit=(mode == 'edit'), add=(mode == 'add'), normal=(mode == 'normal'), valid=valid)
 
+
+@app.route('/manager/add_item', methods=["POST"])
+def manager_add_item():
+    print(123)
+    allowed, new_page = authenticate("manager")
+    if not allowed:
+        return redirect(new_page)
+    if request.method == "POST":
+        form = request.form
+        print(form)
 
 @app.route('/manager/staff')
 def manager_staff():
@@ -643,23 +777,3 @@ def get_item():
 
 if __name__ == '__main__':
     app.run()
-    print("ok")
-    db.create_all()
-    for t in ["orderer", "manager", "staff"]:
-        create_user(t, t+"@gmail.com", "password", user_type=t)
-        user = User.query.filter_by(name=t).first()
-        user.confirmed = True
-    menu = [{'name': 'chicken', 'image': '/static/menu/chicken.png', 'price': 15, 'description': 'hi'},
-            {'name': 'beef', 'image': '/static/menu/beef.png', 'price': 15, 'description': 'hill'},
-            {'name': 'fish', 'image': '/static/menu/fish.png', 'price': 20, 'description': 'his'},
-            {'name': 'vegetable', 'image': '/static/menu/veggie.png', 'price': 12, 'description': 'hit'},
-            {'name': 'water', 'image': '/static/menu/water.png', 'price': 2.50, 'description': 'hi'},
-            {'name': 'coke', 'image': '/static/menu/coke.png', 'price': 3, 'description': 'hill'},
-            {'name': 'sprite', 'image': '/static/menu/sprite.png', 'price': 3, 'description': 'his'},
-            {'name': 'fanta', 'image': '/static/menu/fanta.png', 'price': 4, 'description': 'hit'},
-            {'name': 'fries', 'image': '/static/menu/fries.png', 'price': 5, 'description': 'fries'}
-            ]
-    for item in menu:
-        new_item = Item(name=item["name"], image=item["image"], price=item["price"], description=item["description"])
-        db.session.add(new_item)
-    db.session.commit()

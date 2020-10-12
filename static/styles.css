@@ -103,19 +103,6 @@ body {
     margin-right: 5%;
 }
 
-.button.submit {
-    color: black;
-    background-color: white;
-    width: auto;
-    padding: 5px 10px 5px 10px;
-    transition: 0.3s;
-}
-
-.button.submit:hover {
-    color: white;
-    background-color: black;
-}
-
 .button.create:hover {
     color: white;
     background-color: green;
@@ -267,15 +254,15 @@ body {
 
 /* The popup form - hidden by default */
 .form-popup {
-    padding-left: 1%;
+    padding-left: 2%;
     color: white;
     display: none;
     width: 12%;
     background-color: black;
     z-index: 9;
     position: relative;
-    margin-left: 42%;
     margin-top: 15%;
+    margin-left: 45%;
     border-radius: 10%;
 }
 
@@ -337,10 +324,17 @@ body {
     transition-duration: 0.2s;
 }
 
+.menu-item-text:hover {
+    color: red;
+}
+
 .menu-item-text {
     text-align: center;
     position: absolute;
-    bottom: -5%;
+}
+
+.manager-item {
+    left: 30%;
 }
 
 .dropbtn {
@@ -404,7 +398,20 @@ body {
     border: none;
     border-radius: 4px;
     position: relative;
-    left: 410%;
+    left: 164%;
+    display: inline-block;
+}
+
+.add-item-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 16px;
+    font-size: 16px;
+    border: none;
+    border-radius: 4px;
+    position: relative;
+    left: 157%;
+    display: inline-block;
 }
 
 .cancel-changes-button {
@@ -443,21 +450,7 @@ body {
 }
 
 .cell {
-    cursor: pointer;
     position: relative;
-}
-
-.item {
-    height: 200px;
-    position: relative;
-    transition-duration: 0.2s;
-}
-
-.enlarge {
-    margin-left: 25px;
-    margin-top: 10px;
-    height: 120px;
-    transition-duration: 0.2s;
 }
 
 .menu-edit-form {
@@ -470,6 +463,7 @@ body {
     box-sizing: border-box;
     position: relative;
     left: 15%;
+    top: 10px;
 }
 
 table {
@@ -488,23 +482,53 @@ tr:nth-child(even) {
   background-color: #dddddd;
 }
 
-table {
-    font-family: arial, sans-serif;
-    border-collapse: collapse;
-    width: 40%;
-    margin: auto;
+.inputfile {
+	width: 0.1px;
+	height: 0.1px;
+	opacity: 0;
+	overflow: hidden;
+	position: absolute;
+	z-index: -1;
 }
 
-td, th {
-    border: 1px solid #dddddd;
-    text-align: left;
-    padding: 8px;
+.inputfile + label {
+    color: white;
+    background-color: rgb(171, 176, 184);
+    display: inline-block;
+    padding: 6px;
+    border-radius: 4px;
+    position: relative;
+    left: 14%;
+    transition-duration: 0.2s;
 }
 
-tr:nth-child(even) {
-  background-color: #dddddd;
+.inputfile:focus + label,
+.inputfile + label:hover {
+    background-color: indianred;
+    transition-duration: 0.2s;
+}
+
+.inputfile + label {
+	cursor: pointer; /* "hand" cursor */
+}
+
+.orderer-cell {
+    position: relative;
+    transition: 0.3s;
 }
 
 .fa-info-circle {
     cursor: pointer;
+}
+
+.submit {
+    color: black;
+    background-color: white;
+    transition: 0.3s;
+    padding: 5px 10px 5px 10px;
+}
+
+.submit:hover {
+    color: white;
+    background-color: black;
 }

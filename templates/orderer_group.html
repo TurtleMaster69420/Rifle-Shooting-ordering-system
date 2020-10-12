@@ -56,9 +56,10 @@
     {% else %}
         <p>You have not made an order yet. Make one now!</p>
     {% endif %}
+    <p>Submit your order before {{ due_date }} </p>
     <div class="menu">
         {% for item in menu %}
-            <div class="item" id={{item.item_id}} style="border: black 1px solid; border-radius: 10px;">
+            <div class="orderer-cell" id={{item.item_id}} style="border: black 1px solid; border-radius: 10px;">
                 <i class="fa fa-info-circle" style="position: absolute" onclick="window.location.href=`/item?id={{ item.item_id }}`"></i>
                 <img class="menu-item-image" src={{item["image"]}}>
                     <div class="menu-item-text" >
@@ -75,6 +76,7 @@
     {% endif %}
     <script>
         orders = {};
+
 
         function updateQuantity(quant) {
             var item_id = quant.parentElement.parentElement.id;
