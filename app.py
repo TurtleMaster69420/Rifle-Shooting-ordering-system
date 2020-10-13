@@ -209,20 +209,22 @@ class Group(db.Model):
     timeframe_end = db.Column(db.DateTime, nullable=True, unique=False)
     organiser_id = db.Column(db.Integer, db.ForeignKey("user.user_id"))
     orders = db.relationship("Order", backref="group_in", lazy=True)
+    processing_orders = db.Column(db.Boolean, default=False)
+    collecting_orders = db.Column(db.Boolean, default=False)
 
 
 class Order(db.Model):
     order_id = db.Column(db.Integer, primary_key=True, unique=True, nullable=False)
     group_id = db.Column(db.Integer, db.ForeignKey("group.group_id"))
     orderer_id = db.Column(db.Integer, db.ForeignKey("user.user_id"))
-    item_info = db.relationship("Info", backref="order")
-    total_cost = db.Column(db.Float, nullable=False)
+    info = db.relationship("Info", backref="order_in")
+    total_cost = db.Column(db.Float, nullable=True)
 
 
 class Info(db.Model):
     info_id = db.Column(db.Integer, primary_key=True, unique=True, nullable=False)
     order_id = db.Column(db.Integer, db.ForeignKey("order.order_id"))
-    item = db.relationship("Item", backref="info")
+    item_id = db.Column(db.Integer, db.ForeignKey("item.item_id"))
     quantity = db.Column(db.Integer, unique=False, nullable=False)
 
 
@@ -232,7 +234,7 @@ class Item(db.Model):
     price = db.Column(db.Float, nullable=False)
     image = db.Column(db.String(64), nullable=False)
     description = db.Column(db.String(128), nullable=False)
-    info_id = db.Column(db.Integer, db.ForeignKey("info.info_id"))
+    info = db.relationship("Info", backref="item")
 
 
 # this function checks whether the user is allowed on the current page, taking in the parameter of the page type
@@ -497,7 +499,6 @@ def orderer_create():
 
 @app.route("/orderer/join", methods=["POST"])
 def orderer_join():
-    print(request.form.get("invite_code"))
     allowed, new_page = authenticate("orderer")
     if not allowed:
         return redirect(new_page)
@@ -531,19 +532,16 @@ def orderer_join():
 def group_invite(gid):
     allowed, new_page = authenticate("orderer")
     if not allowed:
-        print("ujfisdjjdsf")
         return redirect(new_page)
 
     group_wanted = Group.query.filter_by(gid=gid).first()
 
     # if the gid does not exist
     if not group_wanted:
-        print("yeehoo")
         return redirect("/orderer/home")
 
     # if the user is not the organiser of the group
     if group_wanted.organiser_id != session["user"]:
-        print("yoeoey")
         return redirect("/orderer/home")
 
     # assign the group invite code as a 24 character, random readable string and redirect organiser back to their group
@@ -563,6 +561,14 @@ def set_time_frame(gid):
     group_wanted = Group.query.filter_by(gid=gid).first()
 
     if not group_wanted:
+        return redirect("/orderer/home")
+
+    # check if a timeframe is already set
+    if group_wanted.timeframe_end:
+        return redirect("/orderer/home")
+
+    # check if the orders are being cooked or collected
+    if group_wanted.processing_orders or group_wanted.collecting_orders:
         return redirect("/orderer/home")
 
     # check if the user is the organiser of the group
@@ -586,15 +592,93 @@ def set_time_frame(gid):
     # convert to datetime object and set timeframe in database
     timeframe_end = datetime.datetime.strptime(f"{end_date} - {end_time}", "%Y-%m-%d - %H:%M")
     group_wanted.timeframe_end = timeframe_end
-    print(timeframe_end)
     db.session.commit()
-    print(group_wanted.timeframe_end)
-    print("WHAT", Group.query.all()[0].timeframe_end)
-
 
     flash("The timeframe has been set!", "success")
 
     return redirect(f"/orderer/group/{gid}")
+
+
+@app.route('/orderer/group/<gid>/makeOrder')
+def make_order(gid):
+    allowed, new_page = authenticate("orderer")
+    if not allowed:
+        return redirect(new_page)
+
+    group_wanted = Group.query.filter_by(gid=gid).first()
+
+    # check if the provided gid exists
+    if not group_wanted:
+        return redirect("/orderer/home")
+
+    # check if the user is a member or organiser of the group
+    if group_wanted.organiser_id != session["user"] and not group_wanted.members.filter_by(user_id=session["user"]).first():
+        return redirect("/orderer/home")
+
+    # check if the timeframe exists and hasn't passed yet
+    if not group_wanted.timeframe_end or group_wanted.timeframe_end < datetime.datetime.today():
+        group_wanted.timeframe_end = False
+        db.session.commit()
+        return redirect("/orderer/home")
+
+
+    # check if any items have actually been ordered
+    if not request.args:
+        flash("No items have been selected", "danger")
+        return redirect(f"/orderer/group/{gid}")
+
+    for item_id in request.args:
+        if not Item.query.get(item_id) or float(request.args.get(item_id)) < 0:
+            break
+    else:
+        # if the user has already submitted an order
+        g = Order.query.filter_by(orderer_id=session["user"], group_id=group_wanted.group_id)
+        if g.first():
+            Info.query.filter_by(order_id=g.first().order_id).delete()
+            g.delete()
+            db.session.commit()
+        total_cost = 0
+        for item_id in request.args:
+            item = Item.query.get(item_id)
+            total_cost += item.price * float(request.args.get(item_id))
+        order = Order(group_in=group_wanted, orderer=User.query.get(session["user"]), total_cost=total_cost)
+        db.session.add(order)
+        for item_id in request.args:
+            item = Item.query.get(item_id)
+            info = Info(order_in=order, item=item, quantity=float(request.args.get(item_id)))
+            db.session.add(info)
+        db.session.commit()
+        flash("Your order has been created!", "success")
+        return redirect(f"/orderer/group/{gid}")
+
+    flash("One or more of the provided items are invalid", "danger")
+    return redirect(f"/orderer/group/{gid}")
+
+
+@app.route('/orderer/group/<gid>/collected')
+def group_collect(gid):
+    allowed, new_page = authenticate("orderer")
+    if not allowed:
+        return redirect(new_page)
+
+    # check if the group exists
+    group_wanted = Group.query.filter_by(gid=gid).first()
+    if not gid:
+        return redirect('/orderer/home')
+
+    # check if the orders are being collected and that the user sending the confirmation for this is the organiser
+    if not group_wanted.collecting_orders or group_wanted.organiser_id != session["user"]:
+        return redirect('/orderer/home')
+
+    # delete orders from database
+    group_wanted.collecting_orders = False
+    for order in group_wanted.orders:
+        Info.query.filter_by(order_id=order.order_id).delete()
+        Order.query.filter_by(order_id=order.order_id).delete()
+    db.session.commit()
+
+    flash("Reset group to intial state.", "success")
+    return redirect(f'/orderer/group/{gid}')
 
 
 @app.route('/orderer/group/<gid>', methods=["GET"])
@@ -609,30 +693,40 @@ def group(gid):
     if not group_wanted:
         return redirect("/orderer/home")
 
-    # remove time frame if it has finished
+    # remove time frame if it has finished and set the group status to having their orders cooked
     if group_wanted.timeframe_end and group_wanted.timeframe_end < datetime.datetime.today():
         group_wanted.timeframe_end = None
+        group_wanted.processing_orders = True
         db.session.commit()
 
     user = User.query.get(session["user"])
+    menu = Item.query.all()
 
-    order = None
-    for o in group_wanted.orders:
-        if o.orderer_id == session["user"]:
-            order = o
-            break
+    # if the group has finished collecting orders
+    if group_wanted.collecting_orders and request.args.get("done"):
+        group_wanted.collecting_orders = False
+        db.session.commit()
 
-    print(group_wanted.timeframe_end)
+    if group_wanted.timeframe_end:
+        due_date = group_wanted.timeframe_end.strftime("%H:%M %p on the {{DATE}} of %B, %Y")
+        date = group_wanted.timeframe_end.day
+        if 11 <= date <= 13:
+            date =
+    else:
+        due_date = None
 
     # if the user is the organiser, display the organiser page
     if group_wanted.organiser_id == session["user"]:
+        orders = []
+        for o in group_wanted.orders:
+            orders.append({"name": User.query.get(o.orderer_id).name, "info": o.info, "total_cost": o.total_cost})
         return render_template("organiser_group.html", groups_in=user.groups_in,
-                               groups_owned=user.groups_owned, group=group_wanted, order=order)
+                               groups_owned=user.groups_owned, group=group_wanted, orders=orders, order=Order.query.filter_by(orderer_id=session["user"], group_id=group_wanted.group_id).first(), due_date=due_date, menu=menu)
 
     # if the user is a normal member, display the default orderer page
     if group_wanted.members.filter_by(user_id=session["user"]).first():
         return render_template("orderer_group.html", groups_in=user.groups_in,
-                               groups_owned=user.groups_owned, group=group_wanted, order=order, user_db=User)
+                               groups_owned=user.groups_owned, group=group_wanted, order=Order.query.filter_by(orderer_id=session["user"], group_in=group_wanted).first(), menu=menu, due_date=due_date)
 
     # otherwise, redirect the user back the their home page (they are unauthenticated)
     return redirect("/orderer/home")
@@ -643,7 +737,59 @@ def staff_home():
     allowed, new_page = authenticate("staff")
     if not allowed:
         return redirect(new_page)
-    return render_template("staff_home.html")
+
+    group_first = Group.query.filter_by(processing_orders=True).first()
+
+    # if there are groups that need orders to be cooked
+    if group_first:
+        return redirect(f"/staff/home/{group_first.gid}")
+
+    # otherwise, display the page showing that there are no orders to be cooked
+    return render_template("staff_home.html", no_orders=True)
+
+
+@app.route('/staff/home/<gid>/submit')
+def submit_order(gid):
+    allowed, new_page = authenticate("staff")
+    if not allowed:
+        return redirect(new_page)
+
+    group_wanted = Group.query.filter_by(gid=gid).first()
+
+    # check if group exists and order is being cooked
+    if group_wanted and group_wanted.processing_orders:
+        group_wanted.processing_orders = False
+        group_wanted.collecting_orders = True
+
+        flash("The order has been completed!", "success")
+        db.session.commit()
+
+    return redirect("/staff/home")
+
+
+@app.route('/staff/home/<gid>')
+def staff_order(gid):
+    allowed, new_page = authenticate("staff")
+    if not allowed:
+        return redirect(new_page)
+
+    # check if gid exists and the group is ready to have their orders cooked
+    group_wanted = Group.query.filter_by(gid=gid).first()
+
+    if not group_wanted or not group_wanted.processing_orders:
+        return redirect("/staff/home")  # no infinite recursion since this page will find the correct gid
+
+    # otherwise, return the orders in this page
+    groups = Group.query.filter_by(processing_orders=True).all()
+    orders = {}
+    for order in group_wanted.orders:
+        for info in order.info:
+            if info.item in orders:
+                orders[info.item.name] += info.quantity
+            else:
+                orders[info.item.name] = info.quantity
+
+    return render_template("staff_home.html", groups=groups, orders=orders, name=group_wanted.name)
 
 
 @app.route('/manager/home')
@@ -738,6 +884,8 @@ def manager_menu():
 
     filter = request.args.get('filter', 'name')
     reverse = (request.args.get('reverse', 'false') == 'true')
+    edit = (request.args.get('edit', 'false') == 'true')
+
     mode = (request.args.get('mode', 'normal'))
     if not valid:
         mode = 'add'
@@ -746,8 +894,8 @@ def manager_menu():
     if reverse:
         menu.reverse()
 
-
     return render_template("manager_menu.html", menu=menu, reverse=reverse, edit=(mode == 'edit'), add=(mode == 'add'), normal=(mode == 'normal'), valid=valid)
+
 
 @app.route('/manager/add_item', methods=["POST"])
 def manager_add_item():
@@ -764,13 +912,38 @@ def manager_staff():
     allowed, new_page = authenticate("manager")
     if not allowed:
         return redirect(new_page)
-    staff = [{'name':'Bob', 'email': 'bob@gmail.com'},
-             {'name':'Rob', 'email': 'rob42@gmail.com'},
-             {'name':'Cob', 'email': 'cob@gmail.com'},
-             {'name':'Nob', 'email': 'nob@gmail.com'},
-    ]
+    staff = User.query.filter_by(type="staff").all()
+
     return render_template("manager_staff.html", staff=staff)
 
+
+@app.route("/item")
+def get_item():
+    iid = request.args.get("id")
+    item = Item.query.get(iid)
+    if not item:
+        return redirect('/')
+    return render_template("item.html", item=item)
+
+# db.create_all()
+# for t in ["orderer", "manager", "staff"]:
+#     create_user(t, t+"@gmail.com", "password", user_type=t)
+#     user = User.query.filter_by(name=t).first()
+#     user.confirmed = True
+# menu = [{'name': 'chicken', 'image': '/static/menu/chicken.png', 'price': 15, 'description': 'hi'},
+#         {'name': 'beef', 'image': '/static/menu/beef.png', 'price': 15, 'description': 'hill'},
+#         {'name': 'fish', 'image': '/static/menu/fish.png', 'price': 20, 'description': 'his'},
+#         {'name': 'vegetable', 'image': '/static/menu/veggie.png', 'price': 12, 'description': 'hit'},
+#         {'name': 'water', 'image': '/static/menu/water.png', 'price': 2.50, 'description': 'hi'},
+#         {'name': 'coke', 'image': '/static/menu/coke.png', 'price': 3, 'description': 'hill'},
+#         {'name': 'sprite', 'image': '/static/menu/sprite.png', 'price': 3, 'description': 'his'},
+#         {'name': 'fanta', 'image': '/static/menu/fanta.png', 'price': 4, 'description': 'hit'},
+#         {'name': 'fries', 'image': '/static/menu/fries.png', 'price': 5, 'description': 'fries'}
+#         ]
+# for item in menu:
+#     new_item = Item(name=item["name"], image=item["image"], price=item["price"], description=item["description"])
+#     db.session.add(new_item)
+# db.session.commit()
 
 if __name__ == '__main__':
     app.run()

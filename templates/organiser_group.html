@@ -25,7 +25,37 @@
             Your group has no invite code. Create one now!
         {% endif %}
     </p>
-    {% if not group.timeframe_end %}
+    {% if group.processing_orders %}
+        <p> The company staff are currently fulfilling your orders. Please wait until that is complete </p>
+        {% if order %}
+            <p>
+            Order summary:
+            <ul>
+                {% for info in order.info %}
+                    <li>{{ info.quantity }} {{ info.item.name }} (${{ '%0.2f' % info.item.price }} each, total of ${{ '%0.2f' % (info.item.price * info.quantity) }})</li>
+                {% endfor %}
+            </ul>
+            Total amount: ${{ '%0.2f' % order.total_cost }}
+            </p>
+        {% endif %}
+    {% elif group.collecting_orders %}
+        <p>
+            The orders are complete! Press the button below once you have collected and distributed them. <br><br>
+            <a onclick="window.location.href += '/collected'" class="button create" style="padding: 5px 10px 5px 10px; transition: 0.2s;"> Done </a>
+            <h2>All orders:</h2>
+            {% for order in orders %}
+                <div style="border: black 2px solid; border-radius: 10px; margin-top: 20px; padding: 10px;">
+                    Order summary for <b>{{ order.name }}</b>:
+                    <ul>
+                        {% for info in order["info"] %}
+                            <li>{{ info.quantity }} {{ info.item.name }} (${{ '%0.2f' % info.item.price }} each, total of ${{ '%0.2f' % (info.item.price * info.quantity) }})</li>
+                        {% endfor %}
+                    </ul>
+                    Total amount: ${{ "%0.2f" % order["total_cost"] }}
+                </div>
+            {% endfor %}
+        </p>
+    {% elif not group.timeframe_end %}
         <p>
             No time frame for accepting orders has been allocated. Set a due date and time now!
         </p>
@@ -37,14 +67,29 @@
             Order summary:
             <ul>
                 {% for info in order.info %}
-                    <li>{{ info.quantity }} {{ info.item[0].name }} ({{ info.item[0].price }} each, total of {{ info.item[0].price * info.quantity }})</li>
+                    <li>{{ info.quantity }} {{ info.item.name }} (${{ '%0.2f' % info.item.price }} each, total of ${{ '%0.2f' % (info.item.price * info.quantity) }})</li>
                 {% endfor %}
             </ul>
-            Total amount: {{ order.total_cost }}
+            Total amount: ${{ '%0.2f' % order.total_cost }}
         </p>
         {% else %}
             <p>You have not made an order yet. Make one now!</p>
         {% endif %}
+        <p>Submit your order before {{ due_date }} </p>
+        <div class="menu">
+            {% for item in menu %}
+                <div class="orderer-cell" id={{item.item_id}} style="border: black 1px solid; border-radius: 10px;">
+                    <i class="fa fa-info-circle" style="position: absolute;" onclick="window.location.href=`/item?id={{ item.item_id }}`"></i>
+                    <img class="menu-item-image" src={{item["image"]}}>
+                        <div class="menu-item-text">
+                            {{ item.name }}<br>
+                            ${{ "%0.2f" % item.price }}
+                            <input type="number" placeholder="Enter quantity" oninput="updateQuantity(this)">
+                        </div>
+                </div>
+            {% endfor %}
+        </div>
+        <br><a class="button submit" onclick="sendOrder()">{% if order %} Update {% else %} Submit {% endif %} order</a>
         <!-- add menu here kalaish (provide item information and box where they can input quantity -->
         <!-- total amount will show at the bottom (javascript will add all prices * quantities) -->
         <!-- button here will send a request to "/orderer/ABC" (for now) with the selected items and quantity provided -->
@@ -52,27 +97,48 @@
     {% if not group.orders %}
     <p>No orders have been made</p>
     {% else %}
-        {% for order in group.orders %}
-            <h2>Order by {{ user_db.query.get(order.orderer_id) }}</h2>
-            <p>
-                <p>
-                    Order summary:
-                    <ul>
-                        {% for info in order.info %}
-                            <li>{{ info.quantity }} {{ info.item[0].name }} ({{ info.item[0].price }} each, total of {{ info.item[0].price * info.quantity }})</li>
-                        {% endfor %}
-                    </ul>
-                    Total amount: {{ order.total_cost }}
-                </p>
-            </p>
+        <h2>All orders:</h2>
+        {% for order in orders %}
+            <div style="border: black 2px solid; border-radius: 10px; margin-top: 20px; padding: 10px;">
+                Order summary for <b>{{ order.name }}</b>:
+                <ul>
+                    {% for info in order["info"] %}
+                        <li>{{ info.quantity }} {{ info.item.name }} (${{ '%0.2f' % info.item.price }} each, total of ${{ '%0.2f' % (info.item.price * info.quantity) }})</li>
+                    {% endfor %}
+                </ul>
+                Total amount: ${{ "%0.2f" % order["total_cost"] }}
+            </div>
         {% endfor %}
     {% endif %}
     <script>
+        orders = {};
         document.getElementById("invite").href = window.location.href+"/"+"invite";
+
         function setTimeFrame() {
             var end_date = document.getElementById("end_date").value;
             var end_time = document.getElementById("end_time").value;
             window.location.href += `/setTimeFrame?date=${end_date}&time=${end_time}`;
+        }
+
+        function updateQuantity(quant) {
+            var item_id = quant.parentElement.parentElement.id;
+            var image = quant.parentElement.parentElement.children[0];
+
+            if (quant.value === "" || parseInt(quant.value) === 0) {
+                delete orders[item_id];
+                quant.parentElement.parentElement.style.backgroundColor = "";
+                image.classList.remove("enlarge");
+            } else {
+                orders[item_id] = parseInt(quant.value);
+                quant.parentElement.parentElement.style.backgroundColor = "limegreen";
+                image.classList.add("enlarge");
+            }
+        }
+
+        function sendOrder() {
+            var x = new URLSearchParams(orders).toString();
+
+            window.location.href += `/makeOrder?${x}`;
         }
     </script>
 {% endblock %}
