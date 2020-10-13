@@ -56,16 +56,16 @@
         <br>
         <br>
         <br>
-    <form id="edit-menu-form" action="/manager/menu" method="POST">
+    <form enctype="multipart/form-data" id="edit-menu-form" action="/manager/menu" method="POST">
         <div class="menu">
             {% if add %}
                 <div class="cell" style="background-color: rgba(171, 176, 184, 0.5); border-radius: 10%">
                     <div id="new_item_form">
                         <h3 style="text-align: center">New Item</h3>
-                            <input class="inputfile" type="file" id="item-image" name="item-image" placeholder="item image" accept="image/png, image/jpeg, image/jpg">
+                            <input class="inputfile" type="file" id="item-image" name="item-image" accept="image/png, image/jpeg, image/jpg">
                             <label for="item-image">Choose image file</label>
 
-                            <input style="position: relative; top: 40px" name="name" class="menu-edit-form" type="text" placeholder="name">
+                            <input style="position: relative; top: 40px" name="new-name" class="menu-edit-form" type="text" placeholder="name">
                             <input style="position: relative; top: 40px" name="price" class="menu-edit-form" type="text" placeholder="price">
                             {% if not valid %}<p style="color: red">All fields must be filled</p>{% endif %}
                     </div>

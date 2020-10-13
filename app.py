@@ -28,13 +28,15 @@ import random
 
 load_dotenv()
 
-UPLOAD_FOLDER = '/static/menu'
+UPLOAD_FOLDER = 'static\\menu'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-
+UPLOAD_FOLDER = os.path.join(app.instance_path, 'uploads')
+print(UPLOAD_FOLDER)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+print(UPLOAD_FOLDER)
 
 # load certain config variables from an env file
 app.config.update(
@@ -47,7 +49,8 @@ app.config.update(
     MAIL_USERNAME="dstackordering@gmail.com",
     MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD"),
     MAIL_USE_TLS=False,
-    MAIL_USE_SSL=True
+    MAIL_USE_SSL=True,
+    UPLOAD_FOLDER=UPLOAD_FOLDER
 )
 
 # instantiate all the flask classes we'll need
@@ -704,16 +707,20 @@ def manager_menu():
         form = request.form
         print(form)
 
-        if 'item-image' in form:
-            if not (form.get('item-image') and form.get('name') and form.get('price')):
+        if 'new-name' in form:
+            if not (form.get('new-name') and form.get('price')):
                 valid = False
             else:
+                print([x[0] for x in os.walk("..")])
+                print(os.getcwd())
                 print(request.files)
-                file = request.files['file']
+                file = request.files['item-image']
                 if file and allowed_file(file.filename):
                     filename = secure_filename(file.filename)
+                    print(filename)
+                    print(app.config['UPLOAD_FOLDER'])
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                new_item = Item(name=form.get('name'), price=form.get('price'), image=('/static/menu/' + secure_filename(form.get('item-image'))), description=form.get('name'))
+                new_item = Item(name=form.get('new-name'), price=form.get('price'), image=('/static/menu/' + secure_filename(form.get('item-image'))), description=form.get('name'))
                 db.session.add(new_item)
                 db.session.commit()
         else:
