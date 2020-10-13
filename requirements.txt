@@ -9,3 +9,4 @@ python-dotenv
 wtforms
 datetime
 email-validator
+bokeh

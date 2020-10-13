@@ -10,15 +10,9 @@ from set_new_password_form import set_new_password_form
 from dotenv import load_dotenv
 from register_form import registerForm
 from werkzeug.utils import secure_filename
-from bokeh.plotting import figure, show, output_file
 from bokeh.embed import components
-from bokeh.models import DatetimeTickFormatter, Panel, Tabs, ColumnDataSource, HoverTool, FactorRange
-from bokeh.palettes import Dark2
+from bokeh.models import Panel, Tabs, ColumnDataSource
 from bokeh.plotting import figure
-from bokeh.transform import cumsum
-from bokeh.transform import dodge
-from math import pi
-from bokeh.palettes import Turbo256
 from random import randint
 from datetime import timedelta
 import datetime
@@ -28,14 +22,16 @@ import random
 
 load_dotenv()
 
-UPLOAD_FOLDER = 'static\\menu'
+
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 app = Flask(__name__)
-
-UPLOAD_FOLDER = os.path.join(app.instance_path, 'uploads')
+UPLOAD_FOLDER = os.path.join(app.static_folder, "menu")
 print(UPLOAD_FOLDER)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+
 print(UPLOAD_FOLDER)
 
 # load certain config variables from an env file
@@ -60,12 +56,14 @@ db = SQLAlchemy(app)
 bootstrap = Bootstrap(app)
 mail = Mail(app)
 serialiser = URLSafeTimedSerializer(app.config.get("SECRET_KEY"))
+dates = []
 
 group_members = db.Table("group_members",
                          db.Column("user_id", db.Integer, db.ForeignKey("user.user_id")),
                          db.Column("group_id", db.Integer, db.ForeignKey("group.group_id"))
                          )
 
+# helper function for generate_data_for_vis() created by asrith
 def new():
     orders = {'Chicken Burgers': randint(10, 20),
               'Beef Burgers': randint(10, 15),
@@ -77,6 +75,7 @@ def new():
               'Sprite': randint(5, 12)}
     return orders
 
+# function for creating sample random data for the data visualisation was created by asrith
 def generate_data_for_vis():
     orders = new()
     food = []
@@ -176,9 +175,13 @@ def generate_data_for_vis():
 
     return food, week1, week2, week3, week4, date_list, total_sums
 
+
+# https://stackoverflow.com/questions/46136478/flask-upload-how-to-get-file-name - checks if the file is one of the
+# allowed extensions
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 def get_gid():
     now = time.time()
@@ -234,6 +237,8 @@ class Item(db.Model):
     price = db.Column(db.Float, nullable=False)
     image = db.Column(db.String(64), nullable=False)
     description = db.Column(db.String(128), nullable=False)
+    orders = db.Column(db.Integer, default=0)
+    sales = db.Column(db.Integer, default=0)
     info = db.relationship("Info", backref="item")
 
 
@@ -621,7 +626,6 @@ def make_order(gid):
         db.session.commit()
         return redirect("/orderer/home")
 
-
     # check if any items have actually been ordered
     if not request.args:
         flash("No items have been selected", "danger")
@@ -707,11 +711,16 @@ def group(gid):
         group_wanted.collecting_orders = False
         db.session.commit()
 
+    # if a timeframe exists, get a human-readable datetime to display to the user
     if group_wanted.timeframe_end:
         due_date = group_wanted.timeframe_end.strftime("%H:%M %p on the {{DATE}} of %B, %Y")
-        date = group_wanted.timeframe_end.day
+        date = group_wanted.timeframe_end.day  # method of converting day into an ordinal was inspired by:
+        # https://stackoverflow.com/questions/5891555/display-the-date-like-may-5th-using-pythons-strftime
         if 11 <= date <= 13:
-            date =
+            date = str(date) + "th"
+        else:
+            date = str(date) + {1: "st", 2: "nd", 3: "rd"}.get(date % 10, "th")
+        due_date = due_date.replace("{{DATE}}", date)
     else:
         due_date = None
 
@@ -761,6 +770,11 @@ def submit_order(gid):
         group_wanted.processing_orders = False
         group_wanted.collecting_orders = True
 
+        for order in group_wanted.orders:
+            for info in order.info:
+                info.item.orders += info.quantity
+                info.item.sales += info.quantity * info.item.price
+
         flash("The order has been completed!", "success")
         db.session.commit()
 
@@ -794,52 +808,73 @@ def staff_order(gid):
 
 @app.route('/manager/home')
 def manager_home():
-    print(123)
     allowed, new_page = authenticate("manager")
     if not allowed:
         return redirect(new_page)
-    food, week1, week2, week3, week4, date_list, total_sums = generate_data_for_vis()
+
+    menu = Item.query.all()
+    if not menu:
+        return render_template('manager_home.html')
+
+    food = [item.name for item in menu]
+
+    _, week1, week2, week3, week4, date_list, total_sums = generate_data_for_vis()
+    total_orders = []
+    total_sales = []
+    for f in food:
+        item = Item.query.filter_by(name=f).first()
+        total_orders.append(item.orders)
+        total_sales.append(item.sales)
 
     data = {'food': food,
             'week1': week1,
             'week2': week2,
             'week3': week3,
-            'week4': week4}
+            'week4': week4,
+            'total_orders': total_orders,
+            'total_sales': total_sales}
 
     source = ColumnDataSource(data=data)
-    plot = figure(x_range=food, y_range=(0, 35), plot_height=500, plot_width=1000, title="Order Counts by Week",
+
+    # construct a plot for total orders
+    plot = figure(x_range=food, y_range=(0, max(total_orders)), plot_height=500, plot_width=1000,
+                  title="Orders by item",
                   toolbar_location=None, tools="", x_axis_label="Food",
                   y_axis_label="Number of orders")
-    plot.vbar(x=dodge('food', -0.15, range=plot.x_range), top='week1', width=0.1, source=source,
-              color="#ff8533", legend_label=date_list[0])
-
-    plot.vbar(x=dodge('food', -0.05, range=plot.x_range), top='week2', width=0.1, source=source,
-              color="#80dfff", legend_label=date_list[1])
-
-    plot.vbar(x=dodge('food', 0.05, range=plot.x_range), top='week3', width=0.1, source=source,
-              color="#6fdc6f", legend_label=date_list[2])
-
-    plot.vbar(x=dodge('food', 0.15, range=plot.x_range), top='week4', width=0.1, source=source,
-              color="#ff4d4d", legend_label=date_list[3])
-
+    plot.vbar(x="food", top="total_orders", width=0.4, source=source)
     plot.x_range.range_padding = 0
     plot.xgrid.grid_line_color = None
     plot.xaxis.major_label_text_font_size = "11pt"
     plot.yaxis.major_label_text_font_size = "11pt"
-    plot.legend.location = "top_left"
-    plot.legend.orientation = "horizontal"
-    tab2 = Panel(child = plot, title = "Weekly Orders")
-    plot1 = figure(plot_width = 800, title="Total Orders", x_axis_label="Date",
+
+    tab2 = Panel(child=plot, title="Total orders")
+
+    # construct a plot for total sales
+    plot2 = figure(x_range=food, y_range=(0, max(total_sales)), plot_height=500, plot_width=1000, title="Sales by item",
+                   toolbar_location=None, tools="", x_axis_label="Food",
+                   y_axis_label="Sales ($)")
+    plot2.vbar(x="food", top="total_sales", width=0.4, source=source)
+    plot2.x_range.range_padding = 0
+    plot2.xgrid.grid_line_color = None
+    plot2.xaxis.major_label_text_font_size = "11pt"
+    plot2.yaxis.major_label_text_font_size = "11pt"
+
+    tab3 = Panel(child=plot2, title="Total sales")
+
+    # construct line graph of sales over time
+
+    plot1 = figure(plot_width = 800, title="Orders over time", x_axis_label="Date",
                       y_axis_label="Total Food Orders", plot_height = 600, x_range=date_list)
-    plot1.line(x = date_list, y = total_sums, line_width = 4)
-    plot1.circle(x = date_list, y = total_sums, fill_color = "white", size = 9)
+    plot1.line(x=date_list, y=total_sums, line_width = 4)
+    plot1.circle(x=date_list, y=total_sums, fill_color = "white", size=9)
     plot1.xaxis.major_label_text_font_size = "11pt"
     plot1.yaxis.major_label_text_font_size = "11pt"
-    tab1 = Panel(child=plot1, title="Total Orders")
-    tabs = Tabs(tabs=[tab1, tab2])
+    tab1 = Panel(child=plot1, title="Weekly Orders")
+
+    # combine all tabs
+    tabs = Tabs(tabs=[tab1, tab2, tab3])
     script, div = components(tabs)
     return render_template("manager_home.html", script=script, div=div)
-
 
 
 @app.route('/manager/menu', methods=["GET", "POST"])
@@ -861,12 +896,11 @@ def manager_menu():
                 print(os.getcwd())
                 print(request.files)
                 file = request.files['item-image']
+                filename = 1
                 if file and allowed_file(file.filename):
                     filename = secure_filename(file.filename)
-                    print(filename)
-                    print(app.config['UPLOAD_FOLDER'])
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                new_item = Item(name=form.get('new-name'), price=form.get('price'), image=('/static/menu/' + secure_filename(form.get('item-image'))), description=form.get('name'))
+                new_item = Item(name=form.get("new-name"), price=float(form.get('price')), image='/static/menu/'+filename, description=form.get('new-name'))
                 db.session.add(new_item)
                 db.session.commit()
         else:
@@ -896,16 +930,6 @@ def manager_menu():
 
     return render_template("manager_menu.html", menu=menu, reverse=reverse, edit=(mode == 'edit'), add=(mode == 'add'), normal=(mode == 'normal'), valid=valid)
 
-
-@app.route('/manager/add_item', methods=["POST"])
-def manager_add_item():
-    print(123)
-    allowed, new_page = authenticate("manager")
-    if not allowed:
-        return redirect(new_page)
-    if request.method == "POST":
-        form = request.form
-        print(form)
 
 @app.route('/manager/staff')
 def manager_staff():
@@ -944,6 +968,7 @@ def get_item():
 #     new_item = Item(name=item["name"], image=item["image"], price=item["price"], description=item["description"])
 #     db.session.add(new_item)
 # db.session.commit()
+
 
 if __name__ == '__main__':
     app.run()
