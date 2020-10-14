@@ -70,7 +70,7 @@
             </div>
         {% endfor %}
     </div>
-    <br><a class="button submit" onclick=sendOrder()>Submit order</a>
+    <br><a class="button submit" onclick=sendOrder()>{% if order %} Update {% else %} Submit {% endif %} order</a>
     {% else %}
         <p>You currently cannot submit any orders as no timeframe has been allocated.</p>
     {% endif %}

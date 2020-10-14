@@ -238,7 +238,7 @@ class Item(db.Model):
     image = db.Column(db.String(64), nullable=False)
     description = db.Column(db.String(128), nullable=False)
     orders = db.Column(db.Integer, default=0)
-    sales = db.Column(db.Integer, default=0)
+    sales = db.Column(db.Float, default=0)
     info = db.relationship("Info", backref="item")
 
 
@@ -468,7 +468,18 @@ def orderer_home():
         return redirect(new_page)
 
     user = User.query.get(session["user"])
-    return render_template("orderer_home.html", groups_in=user.groups_in, groups_owned=user.groups_owned)
+
+    ordered_groups = []
+    for group_wanted in user.groups_in:
+        if Order.query.filter_by(orderer_id=session["user"], group_id=group_wanted.group_id).first():
+            ordered_groups.append(group_wanted)
+
+    for group_wanted in user.groups_owned:
+        if Order.query.filter_by(orderer_id=session["user"], group_id=group_wanted.group_id).first():
+            ordered_groups.append(group_wanted)
+
+    return render_template("orderer_home.html", groups_in=user.groups_in, user=user,
+                           groups_owned=user.groups_owned, ordered_groups=ordered_groups)
 
 
 @app.route("/orderer/about", methods=["GET"])

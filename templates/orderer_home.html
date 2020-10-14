@@ -22,13 +22,25 @@
         {% endif %}
     {% endwith %}
     <h2>Overview</h2>
-    <p>A total of <span class="owedtoyou">$111</span> is owed to you in:
-        <br> - Group 1 <span class="owedtoyou">($11)</span>
-        <br> - Group 2 <span class="owedtoyou">($100)</span>
-    </p>
-    <p>A total of <span class="owed">$999</span> is owed to:
-        <br> - Group 3 <span class="owed">($99)</span>
-        <br> - Group 4 <span class="owed">($900)</span>
-    </p>
+    Welcome to the orderer section!
+    Your details:
+    <ul>
+        <li> Name - <b> {{ user.name }} </b> </li>
+        <li> Email - <b> {{ user.email }} </b> </li>
+    </ul>
+    {% if ordered_groups %}
+        <p>
+            You have made orders in:
+        </p>
+        <ul>
+            {% for group in ordered_groups %}
+            <li> <a href="/orderer/group/{{ group.gid }}"> {{ group.name }} </a> </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>
+            You have not made any orders!
+        </p>
+    {% endif %}
 {% endblock %}
 
