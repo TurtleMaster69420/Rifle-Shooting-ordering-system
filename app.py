@@ -63,7 +63,8 @@ group_members = db.Table("group_members",
                          db.Column("group_id", db.Integer, db.ForeignKey("group.group_id"))
                          )
 
-# helper function for generate_data_for_vis() created by asrith
+# Asrith
+# helper function for generate_data_for_vis()
 def new():
     orders = {'Chicken Burgers': randint(10, 20),
               'Beef Burgers': randint(10, 15),
@@ -75,7 +76,8 @@ def new():
               'Sprite': randint(5, 12)}
     return orders
 
-# function for creating sample random data for the data visualisation was created by asrith
+# Asrith
+# function for creating sample random data for the data visualisation
 def generate_data_for_vis():
     orders = new()
     food = []
@@ -176,6 +178,7 @@ def generate_data_for_vis():
     return food, week1, week2, week3, week4, date_list, total_sums
 
 
+# Kalaish
 # https://stackoverflow.com/questions/46136478/flask-upload-how-to-get-file-name - checks if the file is one of the
 # allowed extensions
 def allowed_file(filename):
@@ -183,11 +186,14 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+# Cyril
+# Convert the timestamp of when the group was created into a number (obfuscation + uniqueness of groups)
 def get_gid():
     now = time.time()
     return int(now * 105.2) + 100000564023
 
 
+# Database models were created by Cyril
 class User(db.Model):
     user_id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(320), unique=True, nullable=False)
@@ -242,6 +248,7 @@ class Item(db.Model):
     info = db.relationship("Info", backref="item")
 
 
+# Cyril
 # this function checks whether the user is allowed on the current page, taking in the parameter of the page type
 # (e.g. manager, orderer, staff or someone who hasn't logged in (NoneType object)
 def authenticate(page_type=None):
@@ -260,6 +267,7 @@ def authenticate(page_type=None):
     return user.type == page_type, pages[user.type]
 
 
+# Cyril
 # this function will add a user to the database but mark them as unconfirmed and generate a secure token for email
 # verification
 def create_user(name, email, password, user_type="orderer"):
@@ -280,6 +288,7 @@ def create_user(name, email, password, user_type="orderer"):
         return serialiser.dumps(email, salt=app.config.get("SECURITY_PASSWORD_SALT"))
 
 
+# Cyril
 # this function checks whether the provided email and password combination exists in the database
 def verify_login(email, password):
     """
@@ -298,6 +307,7 @@ def verify_login(email, password):
         return False
 
 
+# Cyril
 # create group
 def create_group(name, oid):
     """
@@ -312,6 +322,7 @@ def create_group(name, oid):
     return new_group.gid
 
 
+# Cyril
 # "main page" which will always redirect users to the appropriate part of the page
 @app.route('/')
 def index():
@@ -322,6 +333,7 @@ def index():
         return redirect(new_page)
 
 
+# Cyril
 @app.route('/login', methods=["GET", "POST"])
 def login():
     allowed, new_page = authenticate()
@@ -341,6 +353,7 @@ def login():
     return render_template('login.html', form=form)
 
 
+# Cyril
 @app.route('/logout', methods=["GET"])
 def logout():
     if session.get("user"):
@@ -348,6 +361,7 @@ def logout():
     return redirect("/")
 
 
+# Cyril
 @app.route('/register', methods=["GET", "POST"])
 def register():
     allowed, new_page = authenticate()
@@ -376,6 +390,7 @@ Here is the link to confirm your account: 127.0.0.1:5000/confirm?token={token}
     return render_template('register.html', form=form)
 
 
+# Cyril
 @app.route("/confirm", methods=["GET"])
 def confirm():
     allowed, new_page = authenticate()
@@ -401,6 +416,7 @@ def confirm():
     return redirect("/")
 
 
+# Cyril
 @app.route('/forgot_password', methods=["GET", "POST"])
 def forgot_password():
     allowed, new_page = authenticate()
@@ -427,6 +443,7 @@ Here is the link to reset your password: 127.0.0.1:5000/set_new_password?token={
     return render_template("forgot_password.html", form=form)
 
 
+# Cyril
 @app.route('/set_new_password', methods=["GET", "POST"])
 def set_new_password():
     allowed, new_page = authenticate()
@@ -461,6 +478,7 @@ def set_new_password():
     return render_template("set_new_password.html", form=form)
 
 
+# Cyril
 @app.route("/orderer/home", methods=["GET"])
 def orderer_home():
     allowed, new_page = authenticate("orderer")
@@ -482,6 +500,7 @@ def orderer_home():
                            groups_owned=user.groups_owned, ordered_groups=ordered_groups)
 
 
+# Asrith
 @app.route("/orderer/about", methods=["GET"])
 def orderer_about():
     allowed, new_page = authenticate("orderer")
@@ -492,6 +511,7 @@ def orderer_about():
     return render_template("orderer_about.html", groups_in=user.groups_in, groups_owned=user.groups_owned)
 
 
+# Cyril
 @app.route("/orderer/create", methods=["POST"])
 def orderer_create():
     allowed, new_page = authenticate("orderer")
@@ -513,6 +533,7 @@ def orderer_create():
     return f'{{"url": "/orderer/group/{gid}"}}'
 
 
+# Cyril
 @app.route("/orderer/join", methods=["POST"])
 def orderer_join():
     allowed, new_page = authenticate("orderer")
@@ -544,6 +565,7 @@ def orderer_join():
     return f'{{"url": "/orderer/group/{group_wanted.gid}"}}'
 
 
+# Cyril
 @app.route("/orderer/group/<gid>/invite", methods=["GET"])
 def group_invite(gid):
     allowed, new_page = authenticate("orderer")
@@ -567,6 +589,7 @@ def group_invite(gid):
     return redirect(f"/orderer/group/{gid}")
 
 
+# Cyril
 @app.route('/orderer/group/<gid>/setTimeFrame', methods=["GET"])
 def set_time_frame(gid):
     allowed, new_page = authenticate("orderer")
@@ -615,6 +638,7 @@ def set_time_frame(gid):
     return redirect(f"/orderer/group/{gid}")
 
 
+# Cyril
 @app.route('/orderer/group/<gid>/makeOrder')
 def make_order(gid):
     allowed, new_page = authenticate("orderer")
@@ -635,7 +659,7 @@ def make_order(gid):
     if not group_wanted.timeframe_end or group_wanted.timeframe_end < datetime.datetime.today():
         group_wanted.timeframe_end = False
         db.session.commit()
-        return redirect("/orderer/home")
+        return redirect(f"/orderer/group/{gid}")
 
     # check if any items have actually been ordered
     if not request.args:
@@ -670,6 +694,7 @@ def make_order(gid):
     return redirect(f"/orderer/group/{gid}")
 
 
+# Cyril
 @app.route('/orderer/group/<gid>/collected')
 def group_collect(gid):
     allowed, new_page = authenticate("orderer")
@@ -696,6 +721,7 @@ def group_collect(gid):
     return redirect(f'/orderer/group/{gid}')
 
 
+# Cyril
 @app.route('/orderer/group/<gid>', methods=["GET"])
 def group(gid):
     allowed, new_page = authenticate("orderer")
@@ -709,6 +735,9 @@ def group(gid):
         return redirect("/orderer/home")
 
     # remove time frame if it has finished and set the group status to having their orders cooked
+    # removing the timeframe when the group is visited isn't a great way to do this, however in order to have this
+    # automatically occur, a second process or batch job will need to be scheduled, which is beyond the scope of this
+    # project
     if group_wanted.timeframe_end and group_wanted.timeframe_end < datetime.datetime.today():
         group_wanted.timeframe_end = None
         group_wanted.processing_orders = True
@@ -752,6 +781,7 @@ def group(gid):
     return redirect("/orderer/home")
 
 
+# Kalaish
 @app.route('/staff/home', methods=["GET"])
 def staff_home():
     allowed, new_page = authenticate("staff")
@@ -768,6 +798,7 @@ def staff_home():
     return render_template("staff_home.html", no_orders=True)
 
 
+# Cyril
 @app.route('/staff/home/<gid>/submit')
 def submit_order(gid):
     allowed, new_page = authenticate("staff")
@@ -792,6 +823,7 @@ def submit_order(gid):
     return redirect("/staff/home")
 
 
+# Cyril
 @app.route('/staff/home/<gid>')
 def staff_order(gid):
     allowed, new_page = authenticate("staff")
@@ -817,12 +849,14 @@ def staff_order(gid):
     return render_template("staff_home.html", groups=groups, orders=orders, name=group_wanted.name)
 
 
+# Kalaish
 @app.route('/manager/home')
 def manager_home():
     allowed, new_page = authenticate("manager")
     if not allowed:
         return redirect(new_page)
 
+    # get menu and ensure items exist in it
     menu = Item.query.all()
     if not menu:
         return render_template('manager_home.html')
@@ -830,6 +864,8 @@ def manager_home():
     food = [item.name for item in menu]
 
     _, week1, week2, week3, week4, date_list, total_sums = generate_data_for_vis()
+
+    # Get all the orders and sales generated by each item
     total_orders = []
     total_sales = []
     for f in food:
@@ -837,6 +873,7 @@ def manager_home():
         total_orders.append(item.orders)
         total_sales.append(item.sales)
 
+    # Asrith's code for generating data visualisations
     data = {'food': food,
             'week1': week1,
             'week2': week2,
@@ -888,6 +925,7 @@ def manager_home():
     return render_template("manager_home.html", script=script, div=div)
 
 
+# Kalaish
 @app.route('/manager/menu', methods=["GET", "POST"])
 def manager_menu():
     allowed, new_page = authenticate("manager")
@@ -895,19 +933,20 @@ def manager_menu():
         return redirect(new_page)
 
     valid = True
+
+    # If a change is being made
     if request.method == "POST":
         form = request.form
-        print(form)
 
+        # If a new item is being added
         if 'new-name' in form:
             if not (form.get('new-name') and form.get('price')):
                 valid = False
             else:
-                print([x[0] for x in os.walk("..")])
-                print(os.getcwd())
-                print(request.files)
+                # Get the image
                 file = request.files['item-image']
                 filename = 1
+                # Save the file (if it is secure) and set the image attribute of the item as the file's directory
                 if file and allowed_file(file.filename):
                     filename = secure_filename(file.filename)
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
@@ -915,6 +954,7 @@ def manager_menu():
                 db.session.add(new_item)
                 db.session.commit()
         else:
+            # Get each item and change its attributes to the new, updated values
             for item in Item.query.all():
                 item.name = form.get(str(item.item_id) + 'name')
                 item.price = form.get(str(item.item_id) + 'price')
@@ -935,6 +975,7 @@ def manager_menu():
     if not valid:
         mode = 'add'
 
+    # Sort the menu by the provided filter
     menu = sorted(menu, key=lambda i: i[filter])
     if reverse:
         menu.reverse()
@@ -942,6 +983,7 @@ def manager_menu():
     return render_template("manager_menu.html", menu=menu, reverse=reverse, edit=(mode == 'edit'), add=(mode == 'add'), normal=(mode == 'normal'), valid=valid)
 
 
+# Kalaish
 @app.route('/manager/staff')
 def manager_staff():
     allowed, new_page = authenticate("manager")
@@ -952,8 +994,10 @@ def manager_staff():
     return render_template("manager_staff.html", staff=staff)
 
 
+# Cyril
 @app.route("/item")
 def get_item():
+    # Get the provided item from the database and display its information
     iid = request.args.get("id")
     item = Item.query.get(iid)
     if not item:
